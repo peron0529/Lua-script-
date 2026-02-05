@@ -380,74 +380,48 @@ end)`
     // ※ DojoでRunするとエラーになるのは仕様（gameがないため）
     // =========================
     const LS_DB = [
-      {
-        key: "service.get",
-        tags: ["Studio","基本","Service","game"],
-        desc: "Service取得（GetService）",
-        doc: "Robloxの基本。Serviceはこれで取る（Players, UIS, RunServiceなど）。",
-        code:
-`local Players = game:GetService("Players")
+  // ===== 基本 =====
+  { key:"service.get", tags:["Studio","基本","Service"], desc:"Service取得（GetService）",
+    doc:"Serviceはこれで取る。LocalScriptの基本。",
+    code:`local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")`
-      },
-      {
-        key: "player.local",
-        tags: ["Studio","Players","LocalPlayer"],
-        desc: "LocalPlayer取得",
-        doc: "LocalScriptで自分のプレイヤーを取る定番。",
-        code:
-`local Players = game:GetService("Players")
-local player = Players.LocalPlayer`
-      },
-      {
-        key: "ui.screenGui",
-        tags: ["Studio","UI","PlayerGui","ScreenGui"],
-        desc: "ScreenGui作成（PlayerGuiへ）",
-        doc: "自分の画面UIの土台。ResetOnSpawn=falseでリスポーンでも残る。",
-        code:
-`local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")` },
+
+  { key:"player.local", tags:["Studio","Players","LocalPlayer"], desc:"LocalPlayer取得",
+    doc:"LocalScriptで自分のプレイヤー。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer` },
+
+  // ===== Character =====
+  { key:"char.get", tags:["Studio","Character","Humanoid"], desc:"Character / Humanoid取得",
+    doc:"リスポーンでCharacterが変わるので CharacterAdded を使うのが安全。",
+    code:`local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "DojoGUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")`
-      },
-      {
-        key: "ui.textLabel",
-        tags: ["Studio","UI","TextLabel"],
-        desc: "TextLabel作成（表示）",
-        doc: "UI表示の基本。ScreenGuiの下に置く。",
-        code:
-`local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0, 300, 0, 50)
-label.Position = UDim2.new(0, 20, 0, 20)
-label.Text = "Hello"
-label.Parent = gui`
-      },
-      {
-        key: "ui.button",
-        tags: ["Studio","UI","TextButton"],
-        desc: "TextButton作成（クリック）",
-        doc: "ボタン。MouseButton1Clickで押下イベント。",
-        code:
-`local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 300, 0, 50)
-btn.Position = UDim2.new(0, 20, 0, 80)
-btn.Text = "CLICK"
-btn.Parent = gui
+local function hook(char)
+  local hum = char:WaitForChild("Humanoid")
+  print("Humanoid:", hum)
+end
 
-btn.MouseButton1Click:Connect(function()
-  print("clicked")
-end)`
-      },
-      {
-        key: "input.tap",
-        tags: ["Studio","Input","UserInputService","Touch","Mouse"],
-        desc: "タップ/クリック検知（UIS.InputBegan）",
-        doc: "モバイル/PC両対応。gameProcessedならUI操作中なので無視。",
-        code:
-`local UIS = game:GetService("UserInputService")
+if player.Character then hook(player.Character) end
+player.CharacterAdded:Connect(hook)` },
+
+  { key:"char.rootpart", tags:["Studio","Character","RootPart"], desc:"HumanoidRootPart取得",
+    doc:"位置/移動の基準に使うことが多い。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function hook(char)
+  local root = char:WaitForChild("HumanoidRootPart")
+  print("Root:", root.Position)
+end
+if player.Character then hook(player.Character) end
+player.CharacterAdded:Connect(hook)` },
+
+  // ===== Input =====
+  { key:"input.tap", tags:["Studio","Input","Touch","Mouse"], desc:"タップ/クリック（UIS.InputBegan）",
+    doc:"モバイル/PC両対応。UI操作中は gameProcessed が true になりやすい。",
+    code:`local UIS = game:GetService("UserInputService")
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
   if gameProcessed then return end
@@ -455,37 +429,122 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     or input.UserInputType == Enum.UserInputType.MouseButton1 then
     print("Tapped/Clicked")
   end
-end)`
-      },
-      {
-        key: "loop.render",
-        tags: ["Studio","RunService","RenderStepped"],
-        desc: "毎フレーム処理（RenderStepped）",
-        doc: "画面更新に合わせて動く。重い処理は避ける。",
-        code:
-`local RunService = game:GetService("RunService")
+end)` },
 
-RunService.RenderStepped:Connect(function(dt)
-  -- dt: 前フレームからの秒
-end)`
-      },
-      {
-        key: "state.toggle",
-        tags: ["Studio","pattern","bool","state"],
-        desc: "ON/OFFトグル定番",
-        doc: "on = not on の定番。UIや入力と組み合わせる。",
-        code:
-`local on = false
+  { key:"input.key", tags:["Studio","Input","Keyboard"], desc:"キー入力（Enum.KeyCode）",
+    doc:"PC向け。モバイルは別UIが必要。",
+    code:`local UIS = game:GetService("UserInputService")
 
-local function set(v)
-  on = v
-  print("state:", on and "ON" or "OFF")
+UIS.InputBegan:Connect(function(input, gameProcessed)
+  if gameProcessed then return end
+  if input.KeyCode == Enum.KeyCode.E then
+    print("Pressed E")
+  end
+end)` },
+
+  { key:"cas.bind", tags:["Studio","Input","ContextActionService"], desc:"アクション登録（CAS）",
+    doc:"モバイルボタンも自動で出せる。LocalScriptで超便利。",
+    code:`local CAS = game:GetService("ContextActionService")
+
+local function onAction(name, state, input)
+  if state == Enum.UserInputState.Begin then
+    print("Action:", name)
+  end
+  return Enum.ContextActionResult.Sink
 end
 
-set(false)
-set(not on)`
-      },
-    ];
+CAS:BindAction("DojoAction", onAction, true, Enum.KeyCode.E)
+CAS:SetTitle("DojoAction", "ACTION")
+CAS:SetPosition("DojoAction", UDim2.new(0.8, 0, 0.8, 0))` },
+
+  // ===== UI =====
+  { key:"ui.screenGui", tags:["Studio","UI","ScreenGui"], desc:"ScreenGui作成",
+    doc:"PlayerGui配下に作るのが基本。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DojoGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")` },
+
+  { key:"ui.button", tags:["Studio","UI","TextButton"], desc:"TextButton（クリック）",
+    doc:"ボタンの基本。Parentはgui（ScreenGui）など。",
+    code:`local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 280, 0, 50)
+btn.Position = UDim2.new(0, 20, 0, 80)
+btn.Text = "CLICK"
+btn.Parent = gui
+
+btn.MouseButton1Click:Connect(function()
+  print("clicked")
+end)` },
+
+  { key:"ui.toggle", tags:["Studio","UI","pattern","ON/OFF"], desc:"UIトグル（ON/OFF）",
+    doc:"ボタンで状態切替の超定番。",
+    code:`local on = false
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 280, 0, 50)
+btn.Position = UDim2.new(0, 20, 0, 140)
+btn.Parent = gui
+
+local function refresh()
+  btn.Text = on and "ON" or "OFF"
+end
+refresh()
+
+btn.MouseButton1Click:Connect(function()
+  on = not on
+  refresh()
+end)` },
+
+  // ===== RunService / Loop =====
+  { key:"loop.render", tags:["Studio","RunService","RenderStepped"], desc:"毎フレーム（RenderStepped）",
+    doc:"カメラ/見た目系に。重い処理は避ける。",
+    code:`local RunService = game:GetService("RunService")
+RunService.RenderStepped:Connect(function(dt)
+  -- dt: 秒
+end)` },
+
+  { key:"loop.heartbeat", tags:["Studio","RunService","Heartbeat"], desc:"毎フレーム（Heartbeat）",
+    doc:"物理の後に来やすい。ゲーム処理に使うことも。",
+    code:`local RunService = game:GetService("RunService")
+RunService.Heartbeat:Connect(function(dt)
+end)` },
+
+  // ===== Tween =====
+  { key:"tween.basic", tags:["Studio","TweenService","Tween"], desc:"Tween基本",
+    doc:"UI/パーツを滑らかに動かす。",
+    code:`local TweenService = game:GetService("TweenService")
+local ti = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+-- 例：btnの透明度を変える
+local tween = TweenService:Create(btn, ti, {BackgroundTransparency = 0.2})
+tween:Play()` },
+
+  // ===== Camera =====
+  { key:"camera.fov", tags:["Studio","Camera"], desc:"カメラFOV変更",
+    doc:"LocalScriptでCurrentCameraを触る。",
+    code:`local cam = workspace.CurrentCamera
+cam.FieldOfView = 80` },
+
+  // ===== Remotes（正規のクライアント通信）=====
+  { key:"remote.fire", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent:FireServer",
+    doc:"サーバーに通知する正規手段。RemoteEventはReplicatedStorage等に置く。",
+    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remote = ReplicatedStorage:WaitForChild("MyRemoteEvent")
+
+Remote:FireServer("hello", 123)` },
+
+  { key:"remote.on", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent.OnClientEvent",
+    doc:"サーバーからクライアントへ通知を受け取る。",
+    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remote = ReplicatedStorage:WaitForChild("MyRemoteEvent")
+
+Remote.OnClientEvent:Connect(function(msg, n)
+  print("From server:", msg, n)
+end)` },
+];
 
     // =========================
     // Suggest UI helpers
