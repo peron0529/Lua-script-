@@ -336,6 +336,86 @@ end)`
     }
 
     const TEMPLATE_DB = Object.fromEntries(LETTERS.map(ch => [ch, makeTemplates(ch)]));
+    // ===== LocalScript辞書（学習用DB）=====
+const LS_DB = [
+  {
+    key: "service.get",
+    tags: ["基本","Service","game"],
+    desc: "Service取得（GetService）",
+    doc: "Robloxの基本。Serviceはこれで取る。\n例：Players, UserInputService, RunService など。",
+    code:
+`local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")`
+  },
+  {
+    key: "player.local",
+    tags: ["Players","LocalPlayer"],
+    desc: "LocalPlayer取得",
+    doc: "LocalScriptで自分のプレイヤーを取る定番。",
+    code:
+`local Players = game:GetService("Players")
+local player = Players.LocalPlayer`
+  },
+  {
+    key: "ui.screenGui",
+    tags: ["UI","PlayerGui","ScreenGui"],
+    desc: "ScreenGui作成（PlayerGuiへ）",
+    doc: "自分の画面UIの土台。ResetOnSpawn=falseでリスポーンでも残る。",
+    code:
+`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "DojoGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")`
+  },
+  {
+    key: "input.tap",
+    tags: ["Input","UserInputService","Touch","Mouse"],
+    desc: "タップ/クリック検知（UIS.InputBegan）",
+    doc: "モバイル/PC両対応の入力検知。gameProcessedならUI操作中なので無視する。",
+    code:
+`local UIS = game:GetService("UserInputService")
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+  if gameProcessed then return end
+  if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+    print("Tapped/Clicked")
+  end
+end)`
+  },
+  {
+    key: "loop.render",
+    tags: ["RunService","RenderStepped"],
+    desc: "毎フレーム処理（RenderStepped）",
+    doc: "画面更新に合わせて動く。UI追従・カメラ補助などに使う（重い処理はNG）。",
+    code:
+`local RunService = game:GetService("RunService")
+
+RunService.RenderStepped:Connect(function(dt)
+  -- dt: 前フレームからの秒
+end)`
+  },
+  {
+    key: "state.toggle",
+    tags: ["state","bool","pattern"],
+    desc: "ON/OFFトグルの定番",
+    doc: "LocalScriptの状態管理の超基本。on = not on",
+    code:
+`local on = false
+local function set(v)
+  on = v
+  print("state:", on and "ON" or "OFF")
+end
+
+set(false)
+
+-- 例：どこかのボタンで
+set(not on)`
+  },
+];
 
     function showDoc(item){
       docTitle.textContent = item.key + " — " + item.desc;
