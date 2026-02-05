@@ -641,6 +641,19 @@ end)` },
             wordWrap: "on",
             scrollBeyondLastLine: false
           });
+          // ===== B: Monacoの予測変換（LS_DBを補完候補にする）=====
+monaco.languages.registerCompletionItemProvider("lua", {
+  provideCompletionItems: () => {
+    const suggestions = (typeof LS_DB !== "undefined" ? LS_DB : []).map(it => ({
+      label: it.key,
+      kind: monaco.languages.CompletionItemKind.Snippet,
+      insertText: it.code || "",
+      documentation: (it.desc || "") + "\n\n" + (it.doc || ""),
+      insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+    }));
+    return { suggestions };
+  }
+});
 
           // expose real monaco
           window.__dojoMonacoEditor = editor;
