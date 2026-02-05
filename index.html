@@ -217,9 +217,16 @@ ${userCode}
       return editorFallback.value || "";
     }
     function setEditorText(v){
-      if (editor && typeof editor.setValue === "function") editor.setValue(v);
-      else editorFallback.value = v;
-    }
+  if (editor && typeof editor.setValue === "function") editor.setValue(v);
+  else editorFallback.value = v;
+}
+
+// ★ここに入れる（この位置が正解）
+window.Dojo = window.Dojo || {};
+window.Dojo.setEditorText = setEditorText;
+window.Dojo.showDoc = showDoc;
+window.Dojo.getEditor = () => editor;
+window.Dojo.editorFallback = editorFallback;
 
     runBtn.onclick = ()=>{
       out.textContent = "";
