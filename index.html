@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dojo — A〜Z予測変換 + 大きいエディタ</title>
+  <title>Dojo — A〜Z候補 + 説明 + 必ず書ける</title>
   <style>
     body{font-family:-apple-system,system-ui,sans-serif;margin:12px}
     h2{margin:8px 0}
@@ -13,10 +13,10 @@
     button:active{transform:scale(.98)}
     #out{background:#111;color:#0f0;padding:10px;border-radius:10px;min-height:110px;white-space:pre-wrap;overflow:auto}
 
-    /* エディタ：大きく */
+    /* エディタ（大きい） */
     #editorWrap{margin:10px 0}
     #editorFallback{
-      width:100%; height:500px; /* ← 大きくした */
+      width:100%; height:520px;
       border:1px solid #ddd; border-radius:12px;
       padding:10px;
       font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -24,12 +24,12 @@
       box-sizing:border-box;
     }
     #editor{
-      width:100%; height:500px; /* ← 大きくした */
+      width:100%; height:520px;
       border:1px solid #ddd;border-radius:12px;
       overflow:hidden;display:none;
     }
 
-    /* 予測変換ボックス */
+    /* 候補 */
     #suggest{
       display:none;
       border:1px solid #ddd;
@@ -52,6 +52,20 @@
     .sKey{font-weight:900}
     .sDesc{opacity:.7;font-size:12px;margin-top:2px}
 
+    /* 説明 */
+    #doc{
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:10px;
+      margin-top:10px;
+      background:#fff;
+      font-size:13px;
+      white-space:pre-wrap;
+    }
+    #docTitle{font-weight:900;margin-top:6px}
+    #docBody{opacity:.85;margin-top:6px}
+
+    /* ステージ */
     #stage{
       width:100%;max-width:360px;aspect-ratio:9/16;
       border:1px solid #bbb;border-radius:16px;
@@ -61,10 +75,10 @@
   </style>
 </head>
 <body>
-  <h2>Dojo（a〜z予測変換 / 必ず書ける / 大きい）</h2>
+  <h2>Dojo（A〜Z候補 + 説明 + 必ず書ける）</h2>
   <div class="hint">
-    ✅ 書く場所：下の「Lua Editor」<br>
-    ✅ 予測変換：エディタで <b>a〜z を1文字打つ</b>（例：<code>l</code>）→ 候補が出る → タップで挿入<br>
+    ✅ 書く場所：下の「Lua Editor」（Monaco失敗でもtextareaで必ず書ける）<br>
+    ✅ 予測変換：エディタで <b>a〜z を1文字打つ</b>（例：<code>l</code>）→ 候補が出る → タップで挿入＆説明更新<br>
     ✅ 実行：<b>Run</b> → Output。白い枠タップで <code>Input.onTap</code> が動く
   </div>
 
@@ -79,10 +93,10 @@
   <div id="editorWrap">
     <div class="hint"><b>Lua Editor（ここに書く）</b></div>
 
-    <!-- 必ず出るフォールバック（Monacoが死んでもここで書ける） -->
+    <!-- 必ず出るフォールバック -->
     <textarea id="editorFallback">
 -- ここにLuaを書く（この箱は必ず出る）
--- ためしに l と打って候補を出してみて
+-- ためしに「l」と打って候補を出してみて
 
 print("Ready! Tap the stage")
 
@@ -94,8 +108,15 @@ end)
     <!-- Monacoがロードできたらこっちを表示 -->
     <div id="editor"></div>
 
-    <!-- 予測変換候補 -->
+    <!-- 候補 -->
     <div id="suggest"></div>
+
+    <!-- 説明パネル -->
+    <div id="doc">
+      <b>説明</b>
+      <div id="docTitle">（候補をタップするとここにタイトル）</div>
+      <div id="docBody">（ここに詳しい説明）</div>
+    </div>
   </div>
 
   <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
@@ -103,7 +124,6 @@ end)
 
   <!-- Lua VM -->
   <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
-
   <!-- Monaco（読み込めたら使う。ダメでもtextareaがある） -->
   <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 
@@ -117,6 +137,9 @@ end)
     const editorDiv = document.getElementById("editor");
     const editorFallback = document.getElementById("editorFallback");
     const suggestBox = document.getElementById("suggest");
+
+    const docTitle = document.getElementById("docTitle");
+    const docBody  = document.getElementById("docBody");
 
     let running = false;
     let tapHandlers = [];
@@ -191,7 +214,7 @@ ${userCode}
     };
     clearBtn.onclick = ()=>{ out.textContent = ""; };
 
-    // ========= ② a〜z 予測変換（軽量・自動生成） =========
+    // ========= A〜Z テンプレ（自動生成） =========
     const LETTERS = "abcdefghijklmnopqrstuvwxyz".split("");
 
     function makeTemplates(letter){
@@ -200,6 +223,14 @@ ${userCode}
         {
           key: `${L}.starter`,
           desc: "最小テンプレ（print + onTap）",
+          doc:
+`何が学べる？
+- printの使い方（ログ出力）
+- Input.onTap のイベント（コールバック）
+
+いじる場所
+- printの文字
+- onTapの中身（タップ時の処理）`,
           code:
 `print("${L}: Ready!")
 
@@ -210,6 +241,14 @@ end)`
         {
           key: `${L}.tap`,
           desc: "タップ座標だけ出す",
+          doc:
+`何が学べる？
+- x,y（座標）を受け取る
+- 入力イベントの基本
+
+発展
+- 右側だけ反応など条件分岐
+- タップ回数を数える`,
           code:
 `Input.onTap(function(x, y)
   print("${L}: Tap", x, y)
@@ -218,6 +257,14 @@ end)`
         {
           key: `${L}.counter`,
           desc: "カウンター（変数の練習）",
+          doc:
+`何が学べる？
+- 変数（count）で状態を持つ
+- イベントのたびに状態が変わる
+
+発展
+- 10回でメッセージを変える
+- 減らす処理も足す`,
           code:
 `local count = 0
 print("${L}: counter ready")
@@ -230,6 +277,14 @@ end)`
         {
           key: `${L}.toggle`,
           desc: "ON/OFF切り替え（boolの練習）",
+          doc:
+`何が学べる？
+- true/false（ブール値）
+- on = not on の定番パターン
+
+発展
+- ONの時だけカウント
+- OFFでリセット`,
           code:
 `local on = false
 print("${L}: toggle ready")
@@ -244,8 +299,12 @@ end)`
 
     const TEMPLATE_DB = Object.fromEntries(LETTERS.map(ch => [ch, makeTemplates(ch)]));
 
+    function showDoc(item){
+      docTitle.textContent = item.key + " — " + item.desc;
+      docBody.textContent  = item.doc || "（説明がまだない）";
+    }
+
     function currentToken(text){
-      // 最後の“単語”っぽい部分を取る（a / l. / l.t など）
       const m = (text || "").match(/([A-Za-z][A-Za-z0-9\._]*)$/);
       return m ? m[1].toLowerCase() : "";
     }
@@ -255,13 +314,14 @@ end)`
       suggestBox.innerHTML = "";
     }
 
-    function showSuggest(list, typed){
+    function showSuggest(list){
       suggestBox.innerHTML = "";
       list.forEach(item => {
         const div = document.createElement("div");
         div.className = "sItem";
         div.innerHTML = `<div class="sKey">${item.key}</div><div class="sDesc">${item.desc}</div>`;
         div.onclick = () => {
+          showDoc(item);
           setEditorText(item.code);
           hideSuggest();
         };
@@ -273,31 +333,28 @@ end)`
     function handleSuggest(){
       const text = getEditorText();
       const tok = currentToken(text);
-
       if (!tok) return hideSuggest();
 
       const first = tok[0];
       if (!TEMPLATE_DB[first]) return hideSuggest();
 
-      // 1文字だけ（例：l）で全部出す
-      // それ以外（例：l.t）なら prefix一致で絞る
       const all = TEMPLATE_DB[first];
       let list = all;
 
-      if (tok.length > 1) {
-        list = all.filter(x => x.key.startsWith(tok));
-      }
+      // l.t みたいに入力が進んだら絞る
+      if (tok.length > 1) list = all.filter(x => x.key.startsWith(tok));
 
-      // 入力が「l」でも、候補が多すぎて邪魔ならここで上限を切れる
       list = list.slice(0, 12);
-
       if (!list.length) return hideSuggest();
-      showSuggest(list, tok);
+      showSuggest(list);
     }
 
-    // textareaは常時監視
+    // textarea監視
     editorFallback.addEventListener("input", handleSuggest);
     editorFallback.addEventListener("focus", handleSuggest);
+
+    // 初期説明：l.starter
+    showDoc(TEMPLATE_DB["l"][0]);
 
     // ========= Monaco init（成功したらtextareaを置き換え） =========
     (function initMonaco(){
@@ -320,17 +377,13 @@ end)`
             scrollBeyondLastLine: false
           });
 
-          // textareaは隠してMonacoを表示
           editorFallback.style.display = "none";
           editorDiv.style.display = "block";
 
-          // Monacoの変更を監視して予測変換
           editor.onDidChangeModelContent(handleSuggest);
-          // クリック/フォーカスでも出す
           editor.onDidFocusEditorText(handleSuggest);
 
-          logLine("Monaco Editor Ready（a〜z予測変換つき）");
-          // 初回表示
+          logLine("Editor Ready（a〜z候補 + 説明）");
           handleSuggest();
         });
       } catch (e) {
