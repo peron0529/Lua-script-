@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LocalScript Dojo - Mock UI</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 12px; }
+    h2 { margin: 8px 0; }
+    .hint { opacity: .75; font-size: 12px; margin-bottom: 10px; }
+    textarea { width: 100%; height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; background: #fff; }
+    button:active { transform: scale(0.98); }
+
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+    @media (min-width: 860px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+    pre { white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; border-radius: 12px; min-height: 140px; }
+
+    /* Mock "PlayerGui" area */
+    .stageWrap { border: 1px solid #ddd; border-radius: 14px; padding: 10px; }
+    .stageTitle { display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; }
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      border-radius: 16px;
+      border: 1px solid #bbb;
+      overflow: hidden;
+      background: #f7f7f7;
+      touch-action: manipulation;
+    }
+    .node {
+      position: absolute;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 6px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.9);
+      font-size: 14px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .btn {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.18);
+      background: #fff;
+      font-weight: 700;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    }
+    .btn:active { transform: scale(0.99); }
+    .small { font-size: 12px; opacity: .7; }
+  </style>
+</head>
+<body>
+  <h2>LocalScript道場（擬似UIつくれる風）</h2>
+  <div class="hint">
+    Roblox本物のAPIは動かないけど、<b>LocalScriptの“考え方”</b>（イベント→状態→UI更新）が練習できる。<br>
+    UIはこのページ右側の「Mock PlayerGui」に表示される。
+  </div>
+
+  <div class="grid">
+    <div>
+      <textarea id="code">-- ✅ 例：UIを作って、ボタンで状態を変える
+
+local screen = UI.ScreenGui("Main")
+
+local title = UI.TextLabel(screen, "タイトル: LocalScript道場")
+title.Position = UDim2.new(0.05, 0.05)
+title.Size     = UDim2.new(0.90, 0.10)
+
+local count = 0
+local label = UI.TextLabel(screen, "回数: 0")
+label.Position = UDim2.new(0.05, 0.18)
+label.Size     = UDim2.new(0.90, 0.10)
+
+local inc = UI.Button(screen, "＋ ふやす")
+inc.Position = UDim2.new(0.05, 0.32)
+inc.Size     = UDim2.new(0.43, 0.12)
+
+local dec = UI.Button(screen, "－ へらす")
+dec.Position = UDim2.new(0.52, 0.32)
+dec.Size     = UDim2.new(0.43, 0.12)
+
+inc:onClick(function()
+  count = count + 1
+  label.Text = "回数: " .. count
+  print("増えた:", count)
+end)
+
+dec:onClick(function()
+  count = count - 1
+  label.Text = "回数: " .. count
+  print("減った:", count)
+end)
+
+-- ✅ 例：画面タップでも反応（座標は擬似）
+Input.onTap(function(x, y)
+  print("Tap:", x, y)
+end)
+
+print("RUNNING! ボタン押したり、右の画面をタップしてみて")</textarea>
+
+      <div class="row">
+        <button id="run">Run（起動）</button>
+        <button id="stop">Stop（停止）</button>
+        <button id="clear">Clear（ログ消し）</button>
+      </div>
+
+      <h3>Output</h3>
+      <pre id="out"></pre>
+    </div>
+
+    <div class="stageWrap">
+      <div class="stageTitle">
+        <div><b>Mock PlayerGui</b> <span class="small">(タップ可)</span></div>
+        <button id="resetui">UIリセット</button>
+      </div>
+      <div id="stage" class="stage"></div>
+      <div class="hint" style="margin-top:8px;">
+        ここにLuaで作ったTextLabel/Buttonが出る。<br>
+        サイズ・位置は <code>UDim2.new(xScale, yScale)</code> の2つだけ対応（簡略版）。
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/fengari-web/dist/fengari-web.js"></script>
+  <script>
+    const out = document.getElementById("out");
+    const code = document.getElementById("code");
+    const stage = document.getElementById("stage");
+    const runBtn = document.getElementById("run");
+    const stopBtn = document.getElementById("stop");
+    const clearBtn = document.getElementById("clear");
+    const resetUiBtn = document.getElementById("resetui");
+
+    let running = false;
+
+    // Runtime registries
+    let nodesById = new Map();       // id -> {el, type, clickHandlers: []}
+    let tapHandlers = [];
+    let nextId = 1;
+
+    function log(s) { out.textContent += s; out.scrollTop = out.scrollHeight; }
+    function clearLog() { out.textContent = ""; }
+
+    function resetRuntime() {
+      nodesById = new Map();
+      tapHandlers = [];
+      nextId = 1;
+      stage.innerHTML = "";
+    }
+
+    function px(v) { return Math.round(v) + "px"; }
+
+    function applyRect(el, rect) {
+      // rect: {xScale,yScale,wScale,hScale} in 0..1
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      el.style.left = px(rect.xScale * w);
+      el.style.top  = px(rect.yScale * h);
+      el.style.width  = px(rect.wScale * w);
+      el.style.height = px(rect.hScale * h);
+    }
+
+    function createNode(type, text) {
+      const id = nextId++;
+      const el = document.createElement("div");
+      el.className = "node " + (type === "TextLabel" ? "label" : "btn");
+      el.textContent = String(text ?? "");
+      // default rect
+      const rect = { xScale: 0.05, yScale: 0.05, wScale: 0.4, hScale: 0.1 };
+      applyRect(el, rect);
+      stage.appendChild(el);
+
+      const entry = { id, el, type, rect, clickHandlers: [] };
+
+      el.addEventListener("click", () => {
+        if (!running) return;
+        entry.clickHandlers.forEach(fn => {
+          try { fn(); } catch (e) { log("Error: " + e.message + "\n"); }
+        });
+      });
+
+      nodesById.set(id, entry);
+      return id;
+    }
+
+    function setText(id, text) {
+      const n = nodesById.get(id);
+      if (!n) return;
+      n.el.textContent = String(text ?? "");
+    }
+
+    function setRect(id, xScale, yScale, wScale, hScale) {
+      const n = nodesById.get(id);
+      if (!n) return;
+      n.rect = { xScale, yScale, wScale, hScale };
+      applyRect(n.el, n.rect);
+    }
+
+    function registerClick(id, fn) {
+      const n = nodesById.get(id);
+      if (!n) return;
+      n.clickHandlers.push(fn);
+    }
+
+    function registerTap(fn) { tapHandlers.push(fn); }
+
+    // Tap on stage -> fire Input.onTap
+    stage.addEventListener("click", (e) => {
+      if (!running) return;
+      const r = stage.getBoundingClientRect();
+      const x = Math.round(e.clientX - r.left);
+      const y = Math.round(e.clientY - r.top);
+      tapHandlers.forEach(fn => {
+        try { fn(x, y); } catch (err) { log("Error: " + err.message + "\n"); }
+      });
+    });
+
+    // iPhone rotation/resize -> update rects
+    window.addEventListener("resize", () => {
+      nodesById.forEach(n => applyRect(n.el, n.rect));
+    });
+
+    resetUiBtn.onclick = () => { stage.innerHTML = ""; nodesById.clear(); };
+
+    // Expose to Lua
+    window.appendOutput = (s) => log(s);
+
+    window.__uiCreateScreen = (name) => {
+      // ScreenGui is just a group id; we return an id but don't render anything itself.
+      // We'll represent as a special entry.
+      const id = nextId++;
+      nodesById.set(id, { id, el: null, type: "ScreenGui", rect: null, clickHandlers: [] });
+      return id;
+    };
+
+    window.__uiCreateLabel = (screenId, text) => createNode("TextLabel", text);
+    window.__uiCreateButton = (screenId, text) => createNode("TextButton", text);
+    window.__uiSetText = (id, text) => setText(id, text);
+
+    window.__uiSetPosition = (id, xScale, yScale) => {
+      const n = nodesById.get(id);
+      if (!n) return;
+      setRect(id, xScale, yScale, n.rect?.wScale ?? 0.4, n.rect?.hScale ?? 0.1);
+    };
+
+    window.__uiSetSize = (id, wScale, hScale) => {
+      const n = nodesById.get(id);
+      if (!n) return;
+      setRect(id, n.rect?.xScale ?? 0.05, n.rect?.yScale ?? 0.05, wScale, hScale);
+    };
+
+    window.__uiOnClick = (id, fn) => registerClick(id, fn);
+    window.__inputOnTap = (fn) => registerTap(fn);
+
+    function buildLuaWrapper(userCode) {
+      return `
+-- ========= Mock Roblox-ish =========
+-- UDim2.new(xScale, yScale) 形式の簡略版
+UDim2 = {}
+function UDim2.new(a, b)
+  return {a=a, b=b}
+end
+
+-- UI API
+UI = {}
+
+function UI.ScreenGui(name)
+  return js.global:__uiCreateScreen(tostring(name))
+end
+
+local function bindProps(id, obj)
+  -- Position / Size / Text の代入を監視する（テーブルに __newindex）
+  local mt = {}
+  mt.__newindex = function(t, k, v)
+    rawset(t, k, v)
+    if k == "Text" then
+      js.global:__uiSetText(id, tostring(v))
+    elseif k == "Position" and type(v) == "table" then
+      js.global:__uiSetPosition(id, tonumber(v.a) or 0, tonumber(v.b) or 0)
+    elseif k == "Size" and type(v) == "table" then
+      js.global:__uiSetSize(id, tonumber(v.a) or 0, tonumber(v.b) or 0)
+    end
+  end
+  setmetatable(obj, mt)
+  return obj
+end
+
+function UI.TextLabel(screen, text)
+  local id = js.global:__uiCreateLabel(screen, tostring(text))
+  local obj = {__id=id, Text=text, Position=UDim2.new(0.05,0.05), Size=UDim2.new(0.4,0.1)}
+  obj = bindProps(id, obj)
+  -- 初期反映
+  obj.Text = text
+  obj.Position = obj.Position
+  obj.Size = obj.Size
+  return obj
+end
+
+function UI.Button(screen, text)
+  local id = js.global:__uiCreateButton(screen, tostring(text))
+  local obj = {__id=id, Text=text, Position=UDim2.new(0.05,0.05), Size=UDim2.new(0.4,0.1)}
+  obj = bindProps(id, obj)
+  function obj:onClick(fn)
+    js.global:__uiOnClick(self.__id, fn)
+  end
+  obj.Text = text
+  obj.Position = obj.Position
+  obj.Size = obj.Size
+  return obj
+end
+
+-- Input API
+Input = {}
+function Input.onTap(fn)
+  js.global:__inputOnTap(fn)
+end
+
+-- print
+print = function(...)
+  local t = {}
+  for i=1,select('#', ...) do
+    t[#t+1] = tostring(select(i, ...))
+  end
+  js.global:appendOutput(table.concat(t, " ") .. "\\n")
+end
+-- ================================
+
+${userCode}
+`;
+    }
+
+    runBtn.onclick = () => {
+      clearLog();
+      resetRuntime();
+      running = true;
+
+      try {
+        const wrapped = buildLuaWrapper(code.value);
+        fengari.load(wrapped)();
+        log("[RUNNING] 右の画面にUIが出るよ。ボタン押してみて\\n");
+      } catch (e) {
+        running = false;
+        log("Error: " + e.message + "\\n");
+      }
+    };
+
+    stopBtn.onclick = () => {
+      running = false;
+      log("[STOPPED]\\n");
+    };
+
+    clearBtn.onclick = () => clearLog();
+  </script>
+</body>
+</html>
