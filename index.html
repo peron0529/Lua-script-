@@ -390,6 +390,207 @@ end)`
         logLine("Monaco初期化に失敗（textareaで続行）: " + (e.message || e));
       }
     })();
+    // =====================
+// Part A: LocalScript専用AI（offline）
+// =====================
+const aiLog = document.getElementById("aiLog");
+const aiInput = document.getElementById("aiInput");
+const aiSend = document.getElementById("aiSend");
+const aiInsert = document.getElementById("aiInsert");
+const aiClear = document.getElementById("aiClear");
+
+let aiBest = TEMPLATE_DB["l"][0];
+
+function aiWrite(role, text){
+  const block = document.createElement("div");
+  block.style.margin = "10px 0";
+  block.innerHTML = `<div style="font-weight:900;font-size:12px;opacity:.65">${role}</div>
+                     <div style="margin-top:4px;font-size:13px;line-height:1.35;white-space:pre-wrap">${escapeHtml(text)}</div>`;
+  aiLog.appendChild(block);
+  aiLog.scrollTop = aiLog.scrollHeight;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function norm(s){ return (s||"").toLowerCase().trim(); }
+function isUnsafe(s){
+  // 不正利用（回避/チート/エグゼ系）は拒否
+  const bad = [
+    "exploit","executor","delta","synapse","krnl","bypass","anticheat","anti cheat",
+    "cheat","hack","aimbot","esp","remote spy","remotespy","bedwars",
+    "アンチチート","回避","チート","裏で動く","放置でコイン","キルオーラ","リーチ"
+  ];
+  const x = norm(s);
+  return bad.some(k => x.includes(k));
+}
+
+function score(prompt, item){
+  const p = norm(prompt);
+  let s = 0;
+  if (p.includes("カウンター") || p.includes("counter") || p.includes("回数")) if (item.key.endsWith(".counter")) s += 7;
+  if (p.includes("on/off") || p.includes("オンオフ") || p.includes("トグル") || p.includes("toggle") || p.includes("切り替え")) if (item.key.endsWith(".toggle")) s += 7;
+  if (p.includes("タップ") || p.includes("tap") || p.includes("座標") || p.includes("クリック")) if (item.key.endsWith(".tap")) s += 7;
+  if (p.includes("最初") || p.includes("基本") || p.includes("はじめ") || p.includes("スターター")) if (item.key.endsWith(".starter")) s += 5;
+
+  const m = p.match(/\b([a-z])\b/);
+  if (m && item.key.startsWith(m[1] + ".")) s += 2;
+
+  return s;
+}
+
+function pickTemplates(prompt){
+  const all = LETTERS.flatMap(ch => TEMPLATE_DB[ch]);
+  const ranked = all.map(it => ({it, s: score(prompt, it)})).sort((a,b)=>b.s-a.s);
+  const top = ranked[0].s > 0 ? ranked[0].it : TEMPLATE_DB["l"][0];
+  aiBest = top;
+  return ranked.filter(x=>x.s>0).slice(0,4).map(x=>x.it);
+}
+
+function studioExample(prompt){
+  const p = norm(prompt);
+  const wantsTap = p.includes("タップ") || p.includes("tap") || p.includes("クリック");
+  const wantsToggle = p.includes("トグル") || p.includes("toggle") || p.includes("on/off") || p.includes("切り替え");
+  const wantsCounter = p.includes("カウンター") || p.includes("counter") || p.includes("回数");
+
+  let code =
+`-- Roblox Studio用 LocalScript（自作ゲーム向け）
+-- 置き場所：StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "DojoGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 300, 0, 50)
+label.Position = UDim2.new(0, 20, 0, 20)
+label.Text = "Hello LocalScript"
+label.Parent = gui
+`;
+
+  if (wantsToggle){
+    code +=
+`
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 300, 0, 50)
+button.Position = UDim2.new(0, 20, 0, 80)
+button.Text = "TOGGLE"
+button.Parent = gui
+
+local on = false
+local function refresh()
+  label.Text = "STATE: " .. (on and "ON" or "OFF")
+end
+refresh()
+
+button.MouseButton1Click:Connect(function()
+  on = not on
+  refresh()
+end)
+`;
+  }
+  if (wantsCounter){
+    code +=
+`
+local count = 0
+local inc = Instance.new("TextButton")
+inc.Size = UDim2.new(0, 300, 0, 50)
+inc.Position = UDim2.new(0, 20, 0, 140)
+inc.Text = "+1"
+inc.Parent = gui
+
+inc.MouseButton1Click:Connect(function()
+  count += 1
+  label.Text = "count = " .. count
+end)
+`;
+  }
+  if (wantsTap){
+    code +=
+`
+UIS.InputBegan:Connect(function(input, gameProcessed)
+  if gameProcessed then return end
+  if input.UserInputType == Enum.UserInputType.MouseButton1
+     or input.UserInputType == Enum.UserInputType.Touch then
+    local pos = UIS:GetMouseLocation()
+    label.Text = ("Tap: %d, %d"):format(pos.X, pos.Y)
+  end
+end)
+`;
+  }
+
+  code +=
+`
+-- メモ：
+-- LocalScriptは「入力」「GUI」「カメラ」など “自分だけの体験” が得意。
+-- 共有したい処理はサーバー側（Script）＋RemoteEventでやる。
+`;
+  return code;
+}
+
+function aiHandle(text){
+  if (isUnsafe(text)) {
+    aiWrite("AI",
+`それは不正利用（チート/回避/エグゼキュータ等）につながる可能性が高いから手伝えない。
+代わりに「自作ゲーム向けの学習（UI/入力/状態管理/Studioでの正規API）」ならOK。
+
+例：
+- ボタンでON/OFF切り替えたい
+- タップ座標を表示したい
+- カウンターを作りたい`);
+    aiBest = TEMPLATE_DB["l"][0];
+    return;
+  }
+
+  const p = norm(text);
+  if (p.includes("studio")) {
+    aiWrite("AI", "【Roblox Studio用 LocalScript例】\n" + studioExample(text));
+    return;
+  }
+
+  const picks = pickTemplates(text);
+  const lines = picks.map((t,i)=>`${i+1}. ${t.key} — ${t.desc}`).join("\n");
+  aiWrite("AI", `おすすめ候補：\n${lines}\n\nいちばん合いそう：${aiBest.key}\n（「おすすめをエディタに挿入」で入れられる）`);
+  showDoc(aiBest);
+}
+
+aiSend.onclick = ()=>{
+  const text = aiInput.value.trim();
+  if(!text) return;
+  aiWrite("You", text);
+  aiInput.value = "";
+  aiHandle(text);
+};
+
+aiInsert.onclick = ()=>{
+  setEditorText(aiBest.code);
+  showDoc(aiBest);
+  aiWrite("AI", `挿入した：${aiBest.key}（Runして動かしてみて）`);
+};
+
+aiClear.onclick = ()=>{
+  aiLog.innerHTML = "";
+  aiWrite("AI", "AIログを消した。やりたいことを送って。例：『カウンターを作りたい』");
+};
+
+document.querySelectorAll(".aiChip").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    aiInput.value = btn.getAttribute("data-q");
+    aiSend.click();
+  });
+});
+
+// 初期メッセージ
+aiWrite("AI",
+`使い方：
+- 文章でやりたいことを書く → おすすめテンプレ提案
+- "studio" を含めると Studio用LocalScript例を出す
+- 「おすすめをエディタに挿入」でワンタップ挿入`);
   </script>
 <hr style="margin:18px 0;border:none;border-top:1px solid #ddd">
 
