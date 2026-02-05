@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dojo — Lua Editor (Always Works)</title>
+  <title>Dojo — A〜Z予測変換 + 大きいエディタ</title>
   <style>
     body{font-family:-apple-system,system-ui,sans-serif;margin:12px}
     h2{margin:8px 0}
@@ -12,16 +12,46 @@
     button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fff}
     button:active{transform:scale(.98)}
     #out{background:#111;color:#0f0;padding:10px;border-radius:10px;min-height:110px;white-space:pre-wrap;overflow:auto}
+
+    /* エディタ：大きく */
     #editorWrap{margin:10px 0}
     #editorFallback{
-      width:100%; height:260px;
+      width:100%; height:500px; /* ← 大きくした */
       border:1px solid #ddd; border-radius:12px;
       padding:10px;
       font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size:14px; line-height:1.35;
       box-sizing:border-box;
     }
-    #editor{width:100%;height:260px;border:1px solid #ddd;border-radius:12px;overflow:hidden;display:none}
+    #editor{
+      width:100%; height:500px; /* ← 大きくした */
+      border:1px solid #ddd;border-radius:12px;
+      overflow:hidden;display:none;
+    }
+
+    /* 予測変換ボックス */
+    #suggest{
+      display:none;
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:6px;
+      margin-top:8px;
+      background:#fff;
+      font-size:13px;
+      max-height:220px;
+      overflow:auto;
+    }
+    .sItem{
+      padding:8px;
+      border-radius:10px;
+      cursor:pointer;
+      border:1px solid rgba(0,0,0,0.06);
+      margin:6px 0;
+    }
+    .sItem:active{transform:scale(.99)}
+    .sKey{font-weight:900}
+    .sDesc{opacity:.7;font-size:12px;margin-top:2px}
+
     #stage{
       width:100%;max-width:360px;aspect-ratio:9/16;
       border:1px solid #bbb;border-radius:16px;
@@ -31,10 +61,11 @@
   </style>
 </head>
 <body>
-  <h2>Dojo（Lua練習・必ず書けるエディタ付き）</h2>
+  <h2>Dojo（a〜z予測変換 / 必ず書ける / 大きい）</h2>
   <div class="hint">
-    ✅ スクリプトを書く場所：下の「Lua Editor」<br>
-    ✅ 実行：<b>Run</b> → Outputに結果。白い枠タップで <code>Input.onTap</code> が動く。
+    ✅ 書く場所：下の「Lua Editor」<br>
+    ✅ 予測変換：エディタで <b>a〜z を1文字打つ</b>（例：<code>l</code>）→ 候補が出る → タップで挿入<br>
+    ✅ 実行：<b>Run</b> → Output。白い枠タップで <code>Input.onTap</code> が動く
   </div>
 
   <div class="row">
@@ -46,11 +77,13 @@
   <div id="out"></div>
 
   <div id="editorWrap">
-    <div class="hint"><b>Lua Editor（ここに書く）</b>：Monacoが無理でも<textarea>で必ず使える</div>
+    <div class="hint"><b>Lua Editor（ここに書く）</b></div>
 
-    <!-- まず必ず出るフォールバック（これが「書く場所」） -->
+    <!-- 必ず出るフォールバック（Monacoが死んでもここで書ける） -->
     <textarea id="editorFallback">
 -- ここにLuaを書く（この箱は必ず出る）
+-- ためしに l と打って候補を出してみて
+
 print("Ready! Tap the stage")
 
 Input.onTap(function(x, y)
@@ -58,8 +91,11 @@ Input.onTap(function(x, y)
 end)
 </textarea>
 
-    <!-- Monacoがロードできたらこのdivが表示される -->
+    <!-- Monacoがロードできたらこっちを表示 -->
     <div id="editor"></div>
+
+    <!-- 予測変換候補 -->
+    <div id="suggest"></div>
   </div>
 
   <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
@@ -68,7 +104,7 @@ end)
   <!-- Lua VM -->
   <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
 
-  <!-- Monaco（読み込めたら使う。ダメでもtextareaがあるので問題なし） -->
+  <!-- Monaco（読み込めたら使う。ダメでもtextareaがある） -->
   <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 
   <script>
@@ -80,17 +116,18 @@ end)
 
     const editorDiv = document.getElementById("editor");
     const editorFallback = document.getElementById("editorFallback");
+    const suggestBox = document.getElementById("suggest");
 
     let running = false;
     let tapHandlers = [];
-    let editor = null; // Monaco editor instance (optional)
+    let editor = null; // Monaco instance (optional)
 
     function logLine(s){
       out.textContent += String(s) + "\n";
       out.scrollTop = out.scrollHeight;
     }
 
-    // 改行問題を避ける：Lua側で \n を作らない。JS側で改行を足す。
+    // 改行事故を避ける：Lua側で \n を作らず、JS側で改行付ける
     window.appendOutput = (s)=> { logLine(s); };
     window.__inputOnTap = (fn)=> { tapHandlers.push(fn); };
 
@@ -107,10 +144,7 @@ end)
     function wrap(userCode){
       return `
 Input = {}
-
-function Input.onTap(fn)
-  js.global:__inputOnTap(fn)
-end
+function Input.onTap(fn) js.global:__inputOnTap(fn) end
 
 print = function(...)
   local t = {}
@@ -124,10 +158,13 @@ ${userCode}
 `;
     }
 
-    function getUserLua(){
-      // Monacoが使えるならMonacoから、無理ならtextareaから
+    function getEditorText(){
       if (editor && typeof editor.getValue === "function") return editor.getValue();
       return editorFallback.value || "";
+    }
+    function setEditorText(v){
+      if (editor && typeof editor.setValue === "function") editor.setValue(v);
+      else editorFallback.value = v;
     }
 
     runBtn.onclick = ()=>{
@@ -139,9 +176,8 @@ ${userCode}
         logLine("Lua engineが読み込めてない（通信/ブロックが原因かも）");
         return;
       }
-
       try {
-        const userLua = getUserLua();
+        const userLua = getEditorText();
         fengari.load(wrap(userLua))();
       } catch (e) {
         logLine("Lua Error: " + (e && e.message ? e.message : e));
@@ -153,10 +189,117 @@ ${userCode}
       tapHandlers = [];
       out.textContent = "";
     };
-
     clearBtn.onclick = ()=>{ out.textContent = ""; };
 
-    // Monaco init（失敗してもOK：textareaが残る）
+    // ========= ② a〜z 予測変換（軽量・自動生成） =========
+    const LETTERS = "abcdefghijklmnopqrstuvwxyz".split("");
+
+    function makeTemplates(letter){
+      const L = letter;
+      return [
+        {
+          key: `${L}.starter`,
+          desc: "最小テンプレ（print + onTap）",
+          code:
+`print("${L}: Ready!")
+
+Input.onTap(function(x, y)
+  print("${L}: Tap", x, y)
+end)`
+        },
+        {
+          key: `${L}.tap`,
+          desc: "タップ座標だけ出す",
+          code:
+`Input.onTap(function(x, y)
+  print("${L}: Tap", x, y)
+end)`
+        },
+        {
+          key: `${L}.counter`,
+          desc: "カウンター（変数の練習）",
+          code:
+`local count = 0
+print("${L}: counter ready")
+
+Input.onTap(function()
+  count = count + 1
+  print("${L}: count", count)
+end)`
+        },
+        {
+          key: `${L}.toggle`,
+          desc: "ON/OFF切り替え（boolの練習）",
+          code:
+`local on = false
+print("${L}: toggle ready")
+
+Input.onTap(function()
+  on = not on
+  print("${L}: state", on and "ON" or "OFF")
+end)`
+        }
+      ];
+    }
+
+    const TEMPLATE_DB = Object.fromEntries(LETTERS.map(ch => [ch, makeTemplates(ch)]));
+
+    function currentToken(text){
+      // 最後の“単語”っぽい部分を取る（a / l. / l.t など）
+      const m = (text || "").match(/([A-Za-z][A-Za-z0-9\._]*)$/);
+      return m ? m[1].toLowerCase() : "";
+    }
+
+    function hideSuggest(){
+      suggestBox.style.display = "none";
+      suggestBox.innerHTML = "";
+    }
+
+    function showSuggest(list, typed){
+      suggestBox.innerHTML = "";
+      list.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "sItem";
+        div.innerHTML = `<div class="sKey">${item.key}</div><div class="sDesc">${item.desc}</div>`;
+        div.onclick = () => {
+          setEditorText(item.code);
+          hideSuggest();
+        };
+        suggestBox.appendChild(div);
+      });
+      suggestBox.style.display = "block";
+    }
+
+    function handleSuggest(){
+      const text = getEditorText();
+      const tok = currentToken(text);
+
+      if (!tok) return hideSuggest();
+
+      const first = tok[0];
+      if (!TEMPLATE_DB[first]) return hideSuggest();
+
+      // 1文字だけ（例：l）で全部出す
+      // それ以外（例：l.t）なら prefix一致で絞る
+      const all = TEMPLATE_DB[first];
+      let list = all;
+
+      if (tok.length > 1) {
+        list = all.filter(x => x.key.startsWith(tok));
+      }
+
+      // 入力が「l」でも、候補が多すぎて邪魔ならここで上限を切れる
+      list = list.slice(0, 12);
+
+      if (!list.length) return hideSuggest();
+      showSuggest(list, tok);
+    }
+
+    // textareaは常時監視
+    editorFallback.addEventListener("input", handleSuggest);
+    editorFallback.addEventListener("focus", handleSuggest);
+
+    // ========= Monaco init（成功したらtextareaを置き換え） =========
     (function initMonaco(){
       if (!window.require) {
         logLine("Monaco未使用（textareaでOK）。");
@@ -165,9 +308,7 @@ ${userCode}
       try {
         require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
         require(["vs/editor/editor.main"], function () {
-          // textareaの内容をMonacoへ移す
           const initial = editorFallback.value || "";
-
           editor = monaco.editor.create(editorDiv, {
             value: initial,
             language: "lua",
@@ -183,7 +324,14 @@ ${userCode}
           editorFallback.style.display = "none";
           editorDiv.style.display = "block";
 
-          logLine("Monaco Editor Ready（VSCodeのエディタ）");
+          // Monacoの変更を監視して予測変換
+          editor.onDidChangeModelContent(handleSuggest);
+          // クリック/フォーカスでも出す
+          editor.onDidFocusEditorText(handleSuggest);
+
+          logLine("Monaco Editor Ready（a〜z予測変換つき）");
+          // 初回表示
+          handleSuggest();
         });
       } catch (e) {
         logLine("Monaco初期化に失敗（textareaで続行）: " + (e.message || e));
