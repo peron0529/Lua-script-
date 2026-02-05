@@ -624,6 +624,11 @@ aiInsert.onclick = ()=>{
   if (ed && model && typeof model.setValue === "function") {
     try {
       model.setValue(aiBest.code);    // ← 一番確実
+　　　　// カーソルを「次の行の先頭」へ（例：9→10）
+const p = ed.getPosition(); // いまの行
+const nextLine = Math.min(p.lineNumber + 1, model.getLineCount());
+ed.setPosition({ lineNumber: nextLine, column: 1 });
+ed.revealLineInCenter(nextLine);
       ed.focus();
 
       // “本当に入ったか”を長さで確認
