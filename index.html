@@ -415,6 +415,7 @@ end)`
             scrollBeyondLastLine: false
           });
           window.__dojoMonacoEditor = editor;
+          window.__dojoMonacoModel = editor.getModel();
 
           editorFallback.style.display = "none";
           editorDiv.style.display = "block";
