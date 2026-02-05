@@ -3,18 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dojo — A〜Z候補 + 説明 + 必ず書ける</title>
+  <title>Dojo Ultimate — LocalScript Dojo</title>
   <style>
     body{font-family:-apple-system,system-ui,sans-serif;margin:12px}
     h2{margin:8px 0}
     .hint{opacity:.78;font-size:12px;line-height:1.35;margin:6px 0 10px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){.grid{grid-template-columns:1.15fr .85fr}}
     .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
     button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fff}
     button:active{transform:scale(.98)}
+    code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:8px}
+
     #out{background:#111;color:#0f0;padding:10px;border-radius:10px;min-height:110px;white-space:pre-wrap;overflow:auto}
 
-    /* エディタ（大きい） */
-    #editorWrap{margin:10px 0}
+    /* Editor */
+    #editorWrap{margin-top:10px}
     #editorFallback{
       width:100%; height:520px;
       border:1px solid #ddd; border-radius:12px;
@@ -29,7 +33,7 @@
       overflow:hidden;display:none;
     }
 
-    /* 候補 */
+    /* Suggest */
     #suggest{
       display:none;
       border:1px solid #ddd;
@@ -38,7 +42,7 @@
       margin-top:8px;
       background:#fff;
       font-size:13px;
-      max-height:220px;
+      max-height:240px;
       overflow:auto;
     }
     .sItem{
@@ -51,51 +55,56 @@
     .sItem:active{transform:scale(.99)}
     .sKey{font-weight:900}
     .sDesc{opacity:.7;font-size:12px;margin-top:2px}
+    .sTag{opacity:.55;font-size:11px;margin-top:2px}
 
-    /* 説明 */
-    #doc{
-      border:1px solid #ddd;
-      border-radius:12px;
-      padding:10px;
-      margin-top:10px;
-      background:#fff;
-      font-size:13px;
-      white-space:pre-wrap;
-    }
-    #docTitle{font-weight:900;margin-top:6px}
-    #docBody{opacity:.85;margin-top:6px}
+    /* Doc */
+    .panel{border:1px solid #ddd;border-radius:12px;background:#fff;padding:10px}
+    .panelTitle{font-weight:900;display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .pill{font-size:12px;padding:3px 8px;border:1px solid #ddd;border-radius:999px;opacity:.75}
+    #docTitle{font-weight:900;margin-top:8px}
+    #docBody{opacity:.85;margin-top:8px;white-space:pre-wrap;font-size:13px;line-height:1.35}
 
-    /* ステージ */
+    /* Stage */
     #stage{
       width:100%;max-width:360px;aspect-ratio:9/16;
       border:1px solid #bbb;border-radius:16px;
       background:#f7f7f7;position:relative;overflow:hidden
     }
-    code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:8px}
+
+    /* AI */
+    #aiLog{height:300px;overflow:auto;border:1px solid #ddd;border-radius:12px;padding:10px;white-space:pre-wrap}
+    .msg{margin:10px 0}
+    .role{font-weight:900;font-size:12px;opacity:.65}
+    .text{margin-top:4px;font-size:13px;line-height:1.35;white-space:pre-wrap}
+    #aiInput{width:100%;min-height:84px;border:1px solid #ddd;border-radius:12px;padding:10px;font-size:14px;box-sizing:border-box;margin-top:10px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip{padding:7px 10px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:12px}
   </style>
 </head>
+
 <body>
-  <h2>Dojo（A〜Z候補 + 説明 + 必ず書ける）</h2>
+  <h2>Dojo Ultimate（LocalScript練習：全部入り）</h2>
   <div class="hint">
-    ✅ 書く場所：下の「Lua Editor」（Monaco失敗でもtextareaで必ず書ける）<br>
-    ✅ 予測変換：エディタで <b>a〜z を1文字打つ</b>（例：<code>l</code>）→ 候補が出る → タップで挿入＆説明更新<br>
-    ✅ 実行：<b>Run</b> → Output。白い枠タップで <code>Input.onTap</code> が動く
+    ✅ 予測変換：<b>1文字</b>（例 <code>l</code>）→ A〜Zテンプレ ／ <b>2文字以上</b>（例 <code>service</code>, <code>input</code>, <code>ui</code>）→ LocalScript辞書<br>
+    ✅ 候補タップ：コード挿入＋説明更新 ／ AI：提案→「おすすめを挿入」 ／ Run：Dojo用テンプレは動く（Studio用はRunするとエラーでOK）
   </div>
 
-  <div class="row">
-    <button id="run">Run</button>
-    <button id="reset">Reset</button>
-    <button id="clear">Clear Output</button>
-  </div>
+  <div class="grid">
+    <!-- LEFT -->
+    <div>
+      <div class="row">
+        <button id="run">Run</button>
+        <button id="reset">Reset</button>
+        <button id="clearOut">Clear Output</button>
+      </div>
 
-  <div id="out"></div>
+      <div id="out"></div>
 
-  <div id="editorWrap">
-    <div class="hint"><b>Lua Editor（ここに書く）</b></div>
+      <div id="editorWrap">
+        <div class="hint"><b>Lua Editor（ここに書く）</b>：Monacoが無理でもtextareaで必ず使える</div>
 
-    <!-- 必ず出るフォールバック -->
-    <textarea id="editorFallback">
--- ここにLuaを書く（この箱は必ず出る）
+        <!-- Fallback (always exists) -->
+        <textarea id="editorFallback">-- ここにLuaを書く（この箱は必ず出る）
 -- ためしに「l」と打って候補を出してみて
 
 print("Ready! Tap the stage")
@@ -105,65 +114,73 @@ Input.onTap(function(x, y)
 end)
 </textarea>
 
-    <!-- Monacoがロードできたらこっちを表示 -->
-    <div id="editor"></div>
+        <!-- Monaco (optional) -->
+        <div id="editor"></div>
 
-    <!-- 候補 -->
-    <div id="suggest"></div>
+        <!-- Suggest -->
+        <div id="suggest"></div>
+      </div>
 
-    <!-- 説明パネル -->
-    <div id="doc">
-      <b>説明</b>
-      <div id="docTitle">（候補をタップするとここにタイトル）</div>
-      <div id="docBody">（ここに詳しい説明）</div>
+      <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
+      <div id="stage"></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="panel">
+        <div class="panelTitle">
+          <div>説明</div>
+          <div class="pill">doc</div>
+        </div>
+        <div id="docTitle">（候補をタップするとここが変わる）</div>
+        <div id="docBody">（ここに説明）</div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="panel">
+        <div class="panelTitle">
+          <div>LocalScript専用AI（学習コーチ）</div>
+          <div class="pill">offline</div>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          例：<code>カウンター</code> / <code>ON/OFF</code> / <code>タップ座標</code> / <code>studio で書き方</code>
+        </div>
+
+        <div id="aiLog"></div>
+
+        <div class="chips">
+          <button class="chip" data-q="カウンターを作りたい">カウンター</button>
+          <button class="chip" data-q="ON/OFF切り替えたい">ON/OFF</button>
+          <button class="chip" data-q="タップ座標を表示したい">タップ座標</button>
+          <button class="chip" data-q="studio で LocalScript例がほしい（タップ座標）">Studio例</button>
+        </div>
+
+        <textarea id="aiInput" placeholder="やりたいことを書いて送信（例：ボタンでON/OFF切り替えたい）"></textarea>
+
+        <div class="row">
+          <button id="aiSend">送信</button>
+          <button id="aiInsert">おすすめを挿入</button>
+          <button id="aiClear">AIログ消し</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
-  <div id="stage"></div>
-
-<hr style="margin:18px 0;border:none;border-top:1px solid #ddd">
-
-<div id="aiPanel" style="border:1px solid #ddd;border-radius:12px;background:#fff;padding:10px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-    <b>LocalScript専用AI（学習コーチ）</b>
-    <span style="font-size:12px;padding:3px 8px;border:1px solid #ddd;border-radius:999px;opacity:.75">offline</span>
-  </div>
-
-  <div style="opacity:.75;font-size:12px;line-height:1.35;margin-top:6px">
-    例：<code>カウンター</code> / <code>ON/OFF</code> / <code>タップ座標</code> / <code>Studioでの書き方</code>
-  </div>
-
-  <div id="aiLog" style="height:240px;overflow:auto;border:1px solid #ddd;border-radius:12px;padding:10px;margin-top:10px;white-space:pre-wrap"></div>
-
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-    <button class="aiChip" data-q="カウンターを作りたい">カウンター</button>
-    <button class="aiChip" data-q="ON/OFF切り替えたい">ON/OFF</button>
-    <button class="aiChip" data-q="タップした座標を表示したい">タップ座標</button>
-    <button class="aiChip" data-q="Roblox Studioで動くLocalScript例がほしい">Studio例</button>
-  </div>
-
-  <textarea id="aiInput" style="width:100%;min-height:84px;border:1px solid #ddd;border-radius:12px;padding:10px;font-size:14px;box-sizing:border-box;margin-top:10px"
-    placeholder="やりたいことを書いて送信（例：ボタンでON/OFF切り替えたい）"></textarea>
-
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-    <button id="aiSend">送信</button>
-    <button id="aiInsert">おすすめをエディタに挿入</button>
-    <button id="aiClear">AIログ消し</button>
-  </div>
-</div>
-
   <!-- Lua VM -->
   <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
-  <!-- Monaco（読み込めたら使う。ダメでもtextareaがある） -->
+  <!-- Monaco loader -->
   <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 
   <script>
+    // =========================
+    // Core UI refs
+    // =========================
     const out = document.getElementById("out");
     const stage = document.getElementById("stage");
     const runBtn = document.getElementById("run");
     const resetBtn = document.getElementById("reset");
-    const clearBtn = document.getElementById("clear");
+    const clearOutBtn = document.getElementById("clearOut");
 
     const editorDiv = document.getElementById("editor");
     const editorFallback = document.getElementById("editorFallback");
@@ -172,16 +189,27 @@ end)
     const docTitle = document.getElementById("docTitle");
     const docBody  = document.getElementById("docBody");
 
+    // AI
+    const aiLog = document.getElementById("aiLog");
+    const aiInput = document.getElementById("aiInput");
+    const aiSend = document.getElementById("aiSend");
+    const aiInsert = document.getElementById("aiInsert");
+    const aiClear = document.getElementById("aiClear");
+
     let running = false;
     let tapHandlers = [];
     let editor = null; // Monaco instance (optional)
+
+    // expose (AI can use)
+    window.__dojoMonacoEditor = null;
+    window.__dojoMonacoModel  = null;
 
     function logLine(s){
       out.textContent += String(s) + "\n";
       out.scrollTop = out.scrollHeight;
     }
 
-    // 改行事故を避ける：Lua側で \n を作らず、JS側で改行付ける
+    // iOS+Fengari safety: Lua側で \n を作らず、JS側で改行
     window.appendOutput = (s)=> { logLine(s); };
     window.__inputOnTap = (fn)=> { tapHandlers.push(fn); };
 
@@ -216,17 +244,37 @@ ${userCode}
       if (editor && typeof editor.getValue === "function") return editor.getValue();
       return editorFallback.value || "";
     }
-    function setEditorText(v){
-  if (editor && typeof editor.setValue === "function") editor.setValue(v);
-  else editorFallback.value = v;
-}
 
-// ★ここに入れる（この位置が正解）
-window.Dojo = window.Dojo || {};
-window.Dojo.setEditorText = setEditorText;
-window.Dojo.showDoc = showDoc;
-window.Dojo.getEditor = () => editor;
-window.Dojo.editorFallback = editorFallback;
+    // Insert/replace AND move cursor to "next line" (9->10) in Monaco
+    function setEditorTextSmart(newText){
+      // capture current cursor line (Monaco)
+      let oldLine = 1;
+      if (editor && typeof editor.getPosition === "function") {
+        const p = editor.getPosition();
+        if (p && p.lineNumber) oldLine = p.lineNumber;
+      }
+
+      // always update textarea too (safety)
+      editorFallback.value = newText;
+
+      // update Monaco if available
+      if (editor && window.__dojoMonacoModel && typeof window.__dojoMonacoModel.setValue === "function") {
+        window.__dojoMonacoModel.setValue(newText);
+        editor.focus();
+
+        // move to next line of old cursor (9->10), clamp
+        const model = window.__dojoMonacoModel;
+        const nextLine = Math.min(oldLine + 1, model.getLineCount());
+        editor.setPosition({ lineNumber: nextLine, column: 1 });
+        editor.revealLineInCenter(nextLine);
+      }
+    }
+
+    function showDoc(item){
+      docTitle.textContent = (item.key || "") + " — " + (item.desc || "");
+      const tags = (item.tags && item.tags.length) ? ("【タグ】" + item.tags.join(" / ") + "\n\n") : "";
+      docBody.textContent = tags + (item.doc || "（説明なし）");
+    }
 
     runBtn.onclick = ()=>{
       out.textContent = "";
@@ -250,25 +298,28 @@ window.Dojo.editorFallback = editorFallback;
       tapHandlers = [];
       out.textContent = "";
     };
-    clearBtn.onclick = ()=>{ out.textContent = ""; };
 
-    // ========= A〜Z テンプレ（自動生成） =========
+    clearOutBtn.onclick = ()=>{ out.textContent = ""; };
+
+    // =========================
+    // A〜Z Templates (Dojo用)
+    // =========================
     const LETTERS = "abcdefghijklmnopqrstuvwxyz".split("");
 
-    function makeTemplates(letter){
-      const L = letter;
+    function makeTemplates(L){
       return [
         {
           key: `${L}.starter`,
+          tags: ["Dojo","基本","event"],
           desc: "最小テンプレ（print + onTap）",
           doc:
-`何が学べる？
-- printの使い方（ログ出力）
-- Input.onTap のイベント（コールバック）
+`Dojoで動くテンプレ。
+- printでログ出し
+- Input.onTap( function(x,y) ... end ) のイベント
 
-いじる場所
+いじる場所：
 - printの文字
-- onTapの中身（タップ時の処理）`,
+- onTapの中身`,
           code:
 `print("${L}: Ready!")
 
@@ -277,32 +328,12 @@ Input.onTap(function(x, y)
 end)`
         },
         {
-          key: `${L}.tap`,
-          desc: "タップ座標だけ出す",
-          doc:
-`何が学べる？
-- x,y（座標）を受け取る
-- 入力イベントの基本
-
-発展
-- 右側だけ反応など条件分岐
-- タップ回数を数える`,
-          code:
-`Input.onTap(function(x, y)
-  print("${L}: Tap", x, y)
-end)`
-        },
-        {
           key: `${L}.counter`,
-          desc: "カウンター（変数の練習）",
+          tags: ["Dojo","state","変数"],
+          desc: "カウンター（状態管理）",
           doc:
-`何が学べる？
-- 変数（count）で状態を持つ
-- イベントのたびに状態が変わる
-
-発展
-- 10回でメッセージを変える
-- 減らす処理も足す`,
+`状態（count）を持って、タップで増える。
+LocalScriptの基本「状態＋イベント」の練習。`,
           code:
 `local count = 0
 print("${L}: counter ready")
@@ -314,15 +345,11 @@ end)`
         },
         {
           key: `${L}.toggle`,
-          desc: "ON/OFF切り替え（boolの練習）",
+          tags: ["Dojo","state","bool"],
+          desc: "ON/OFFトグル（bool）",
           doc:
-`何が学べる？
-- true/false（ブール値）
-- on = not on の定番パターン
-
-発展
-- ONの時だけカウント
-- OFFでリセット`,
+`定番：on = not on
+ON/OFFで表示を変える練習。`,
           code:
 `local on = false
 print("${L}: toggle ready")
@@ -331,51 +358,95 @@ Input.onTap(function()
   on = not on
   print("${L}: state", on and "ON" or "OFF")
 end)`
+        },
+        {
+          key: `${L}.tap`,
+          tags: ["Dojo","input"],
+          desc: "タップ座標だけ表示",
+          doc:
+`x,y座標を受け取って表示。`,
+          code:
+`Input.onTap(function(x, y)
+  print("${L}: Tap", x, y)
+end)`
         }
       ];
     }
 
     const TEMPLATE_DB = Object.fromEntries(LETTERS.map(ch => [ch, makeTemplates(ch)]));
-    // ===== LocalScript辞書（学習用DB）=====
-const LS_DB = [
-  {
-    key: "service.get",
-    tags: ["基本","Service","game"],
-    desc: "Service取得（GetService）",
-    doc: "Robloxの基本。Serviceはこれで取る。\n例：Players, UserInputService, RunService など。",
-    code:
+
+    // =========================
+    // LocalScript Dictionary (Studio用・辞書)
+    // ※ DojoでRunするとエラーになるのは仕様（gameがないため）
+    // =========================
+    const LS_DB = [
+      {
+        key: "service.get",
+        tags: ["Studio","基本","Service","game"],
+        desc: "Service取得（GetService）",
+        doc: "Robloxの基本。Serviceはこれで取る（Players, UIS, RunServiceなど）。",
+        code:
 `local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")`
-  },
-  {
-    key: "player.local",
-    tags: ["Players","LocalPlayer"],
-    desc: "LocalPlayer取得",
-    doc: "LocalScriptで自分のプレイヤーを取る定番。",
-    code:
+      },
+      {
+        key: "player.local",
+        tags: ["Studio","Players","LocalPlayer"],
+        desc: "LocalPlayer取得",
+        doc: "LocalScriptで自分のプレイヤーを取る定番。",
+        code:
 `local Players = game:GetService("Players")
 local player = Players.LocalPlayer`
-  },
-  {
-    key: "ui.screenGui",
-    tags: ["UI","PlayerGui","ScreenGui"],
-    desc: "ScreenGui作成（PlayerGuiへ）",
-    doc: "自分の画面UIの土台。ResetOnSpawn=falseでリスポーンでも残る。",
-    code:
+      },
+      {
+        key: "ui.screenGui",
+        tags: ["Studio","UI","PlayerGui","ScreenGui"],
+        desc: "ScreenGui作成（PlayerGuiへ）",
+        doc: "自分の画面UIの土台。ResetOnSpawn=falseでリスポーンでも残る。",
+        code:
 `local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "DojoGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")`
-  },
-  {
-    key: "input.tap",
-    tags: ["Input","UserInputService","Touch","Mouse"],
-    desc: "タップ/クリック検知（UIS.InputBegan）",
-    doc: "モバイル/PC両対応の入力検知。gameProcessedならUI操作中なので無視する。",
-    code:
+      },
+      {
+        key: "ui.textLabel",
+        tags: ["Studio","UI","TextLabel"],
+        desc: "TextLabel作成（表示）",
+        doc: "UI表示の基本。ScreenGuiの下に置く。",
+        code:
+`local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 300, 0, 50)
+label.Position = UDim2.new(0, 20, 0, 20)
+label.Text = "Hello"
+label.Parent = gui`
+      },
+      {
+        key: "ui.button",
+        tags: ["Studio","UI","TextButton"],
+        desc: "TextButton作成（クリック）",
+        doc: "ボタン。MouseButton1Clickで押下イベント。",
+        code:
+`local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 300, 0, 50)
+btn.Position = UDim2.new(0, 20, 0, 80)
+btn.Text = "CLICK"
+btn.Parent = gui
+
+btn.MouseButton1Click:Connect(function()
+  print("clicked")
+end)`
+      },
+      {
+        key: "input.tap",
+        tags: ["Studio","Input","UserInputService","Touch","Mouse"],
+        desc: "タップ/クリック検知（UIS.InputBegan）",
+        doc: "モバイル/PC両対応。gameProcessedならUI操作中なので無視。",
+        code:
 `local UIS = game:GetService("UserInputService")
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -385,43 +456,40 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     print("Tapped/Clicked")
   end
 end)`
-  },
-  {
-    key: "loop.render",
-    tags: ["RunService","RenderStepped"],
-    desc: "毎フレーム処理（RenderStepped）",
-    doc: "画面更新に合わせて動く。UI追従・カメラ補助などに使う（重い処理はNG）。",
-    code:
+      },
+      {
+        key: "loop.render",
+        tags: ["Studio","RunService","RenderStepped"],
+        desc: "毎フレーム処理（RenderStepped）",
+        doc: "画面更新に合わせて動く。重い処理は避ける。",
+        code:
 `local RunService = game:GetService("RunService")
 
 RunService.RenderStepped:Connect(function(dt)
   -- dt: 前フレームからの秒
 end)`
-  },
-  {
-    key: "state.toggle",
-    tags: ["state","bool","pattern"],
-    desc: "ON/OFFトグルの定番",
-    doc: "LocalScriptの状態管理の超基本。on = not on",
-    code:
+      },
+      {
+        key: "state.toggle",
+        tags: ["Studio","pattern","bool","state"],
+        desc: "ON/OFFトグル定番",
+        doc: "on = not on の定番。UIや入力と組み合わせる。",
+        code:
 `local on = false
+
 local function set(v)
   on = v
   print("state:", on and "ON" or "OFF")
 end
 
 set(false)
-
--- 例：どこかのボタンで
 set(not on)`
-  },
-];
+      },
+    ];
 
-    function showDoc(item){
-      docTitle.textContent = item.key + " — " + item.desc;
-      docBody.textContent  = item.doc || "（説明がまだない）";
-    }
-
+    // =========================
+    // Suggest UI helpers
+    // =========================
     function currentToken(text){
       const m = (text || "").match(/([A-Za-z][A-Za-z0-9\._]*)$/);
       return m ? m[1].toLowerCase() : "";
@@ -437,10 +505,15 @@ set(not on)`
       list.forEach(item => {
         const div = document.createElement("div");
         div.className = "sItem";
-        div.innerHTML = `<div class="sKey">${item.key}</div><div class="sDesc">${item.desc}</div>`;
+        const tagLine = item.tags && item.tags.length ? `<div class="sTag">${item.tags.join(" / ")}</div>` : "";
+        div.innerHTML =
+          `<div class="sKey">${item.key}</div>`+
+          `<div class="sDesc">${item.desc || ""}</div>`+
+          tagLine;
+
         div.onclick = () => {
           showDoc(item);
-          setEditorText(item.code);
+          setEditorTextSmart(item.code || "");
           hideSuggest();
         };
         suggestBox.appendChild(div);
@@ -449,49 +522,47 @@ set(not on)`
     }
 
     function handleSuggest(){
-  const text = getEditorText();
-  const tok = currentToken(text);
-  if (!tok) { hideSuggest(); return; }
+      const text = getEditorText();
+      const tok = currentToken(text);
+      if (!tok) { hideSuggest(); return; }
 
-  const q = tok.toLowerCase();
+      const q = tok.toLowerCase();
 
-  // ===== 1) LS_DB検索（2文字以上で動く）=====
-  // service / input / ui / player など
-  if (q.length >= 2 && typeof LS_DB !== "undefined") {
-    const listLS = LS_DB.filter(it => {
-      const key  = String(it.key  || "").toLowerCase();
-      const desc = String(it.desc || "").toLowerCase();
-      const doc  = String(it.doc  || "").toLowerCase();
-      const tags = (it.tags || []).map(t => String(t).toLowerCase());
-      return key.includes(q) || desc.includes(q) || doc.includes(q) || tags.some(t => t.includes(q));
-    }).slice(0, 12);
+      // 1) LocalScript辞書：2文字以上で検索
+      if (q.length >= 2) {
+        const listLS = LS_DB.filter(it => {
+          const key  = String(it.key  || "").toLowerCase();
+          const desc = String(it.desc || "").toLowerCase();
+          const doc  = String(it.doc  || "").toLowerCase();
+          const tags = (it.tags || []).map(t => String(t).toLowerCase());
+          return key.includes(q) || desc.includes(q) || doc.includes(q) || tags.some(t => t.includes(q));
+        }).slice(0, 12);
 
-    if (listLS.length) { showSuggest(listLS); return; }
-  }
+        if (listLS.length) { showSuggest(listLS); return; }
+      }
 
-  // ===== 2) A〜Zテンプレ検索（今まで通り）=====
-  const first = q[0];
-  if (!TEMPLATE_DB[first]) { hideSuggest(); return; }
+      // 2) A〜Zテンプレ：1文字でも出る
+      const first = q[0];
+      if (!TEMPLATE_DB[first]) { hideSuggest(); return; }
 
-  let list = TEMPLATE_DB[first];
+      let list = TEMPLATE_DB[first];
+      if (q.length > 1) list = list.filter(x => x.key.startsWith(q));
+      list = list.slice(0, 12);
 
-  // 例：l.t みたいに入力が進んだら絞る
-  if (q.length > 1) list = list.filter(x => x.key.startsWith(q));
+      if (!list.length) { hideSuggest(); return; }
+      showSuggest(list);
+    }
 
-  list = list.slice(0, 12);
-  if (!list.length) { hideSuggest(); return; }
-
-  showSuggest(list);
-}
-
-    // textarea監視
+    // hook (textarea)
     editorFallback.addEventListener("input", handleSuggest);
     editorFallback.addEventListener("focus", handleSuggest);
 
-    // 初期説明：l.starter
+    // initial doc
     showDoc(TEMPLATE_DB["l"][0]);
 
-    // ========= Monaco init（成功したらtextareaを置き換え） =========
+    // =========================
+    // Monaco init (optional)
+    // =========================
     (function initMonaco(){
       if (!window.require) {
         logLine("Monaco未使用（textareaでOK）。");
@@ -511,85 +582,83 @@ set(not on)`
             wordWrap: "on",
             scrollBeyondLastLine: false
           });
+
+          // expose real monaco
           window.__dojoMonacoEditor = editor;
           window.__dojoMonacoModel = editor.getModel();
 
+          // show monaco, hide fallback
           editorFallback.style.display = "none";
           editorDiv.style.display = "block";
 
           editor.onDidChangeModelContent(handleSuggest);
           editor.onDidFocusEditorText(handleSuggest);
 
-          logLine("Editor Ready（a〜z候補 + 説明）");
+          logLine("Monaco Editor Ready（全部入り）");
           handleSuggest();
         });
       } catch (e) {
         logLine("Monaco初期化に失敗（textareaで続行）: " + (e.message || e));
       }
     })();
-    // =====================
-// Part A: LocalScript専用AI（offline）
-// =====================
-const aiLog = document.getElementById("aiLog");
-const aiInput = document.getElementById("aiInput");
-const aiSend = document.getElementById("aiSend");
-const aiInsert = document.getElementById("aiInsert");
-const aiClear = document.getElementById("aiClear");
 
-let aiBest = TEMPLATE_DB["l"][0];
+    // =========================
+    // AI (offline)
+    // =========================
+    function addMsg(role, text){
+      const wrap = document.createElement("div");
+      wrap.className = "msg";
+      const r = document.createElement("div");
+      r.className = "role";
+      r.textContent = role;
+      const t = document.createElement("div");
+      t.className = "text";
+      t.textContent = text;
+      wrap.appendChild(r); wrap.appendChild(t);
+      aiLog.appendChild(wrap);
+      aiLog.scrollTop = aiLog.scrollHeight;
+    }
 
-function aiWrite(role, text){
-  const block = document.createElement("div");
-  block.style.margin = "10px 0";
-  block.innerHTML = `<div style="font-weight:900;font-size:12px;opacity:.65">${role}</div>
-                     <div style="margin-top:4px;font-size:13px;line-height:1.35;white-space:pre-wrap">${escapeHtml(text)}</div>`;
-  aiLog.appendChild(block);
-  aiLog.scrollTop = aiLog.scrollHeight;
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
+    function norm(s){ return (s||"").toLowerCase().trim(); }
+    function isUnsafe(s){
+      const bad = [
+        "exploit","executor","delta","synapse","krnl","bypass","anticheat","anti cheat",
+        "cheat","hack","aimbot","esp","remote spy","remotespy","bedwars",
+        "アンチチート","回避","チート","裏で動く","放置でコイン","キルオーラ","リーチ"
+      ];
+      const x = norm(s);
+      return bad.some(k => x.includes(k));
+    }
 
-function norm(s){ return (s||"").toLowerCase().trim(); }
-function isUnsafe(s){
-  // 不正利用（回避/チート/エグゼ系）は拒否
-  const bad = [
- jsjs
-  ];
-  const x = norm(s);
-  return bad.some(k => x.includes(k));
-}
+    // AI picks from Dojo templates by default
+    let aiBest = TEMPLATE_DB["l"][0];
 
-function score(prompt, item){
-  const p = norm(prompt);
-  let s = 0;
-  if (p.includes("カウンター") || p.includes("counter") || p.includes("回数")) if (item.key.endsWith(".counter")) s += 7;
-  if (p.includes("on/off") || p.includes("オンオフ") || p.includes("トグル") || p.includes("toggle") || p.includes("切り替え")) if (item.key.endsWith(".toggle")) s += 7;
-  if (p.includes("タップ") || p.includes("tap") || p.includes("座標") || p.includes("クリック")) if (item.key.endsWith(".tap")) s += 7;
-  if (p.includes("最初") || p.includes("基本") || p.includes("はじめ") || p.includes("スターター")) if (item.key.endsWith(".starter")) s += 5;
+    function scoreDojo(prompt, item){
+      const p = norm(prompt);
+      let s = 0;
+      if (p.includes("カウンター") || p.includes("counter") || p.includes("回数")) if (item.key.endsWith(".counter")) s += 8;
+      if (p.includes("on/off") || p.includes("オンオフ") || p.includes("トグル") || p.includes("toggle") || p.includes("切り替え")) if (item.key.endsWith(".toggle")) s += 8;
+      if (p.includes("タップ") || p.includes("tap") || p.includes("座標") || p.includes("クリック")) if (item.key.endsWith(".tap")) s += 8;
+      if (p.includes("最初") || p.includes("基本") || p.includes("スターター") || p.includes("はじめ")) if (item.key.endsWith(".starter")) s += 6;
+      return s;
+    }
 
-  const m = p.match(/\b([a-z])\b/);
-  if (m && item.key.startsWith(m[1] + ".")) s += 2;
+    function pickDojo(prompt){
+      const all = LETTERS.flatMap(ch => TEMPLATE_DB[ch]);
+      const ranked = all.map(it => ({it, s: scoreDojo(prompt, it)})).sort((a,b)=>b.s-a.s);
+      const top = ranked[0].s > 0 ? ranked[0].it : TEMPLATE_DB["l"][0];
+      aiBest = top;
+      return ranked.filter(x=>x.s>0).slice(0,4).map(x=>x.it);
+    }
 
-  return s;
-}
+    function studioExample(prompt){
+      const p = norm(prompt);
+      const wantsTap = p.includes("タップ") || p.includes("tap") || p.includes("クリック");
+      const wantsToggle = p.includes("トグル") || p.includes("toggle") || p.includes("on/off") || p.includes("切り替え");
+      const wantsCounter = p.includes("カウンター") || p.includes("counter") || p.includes("回数");
 
-function pickTemplates(prompt){
-  const all = LETTERS.flatMap(ch => TEMPLATE_DB[ch]);
-  const ranked = all.map(it => ({it, s: score(prompt, it)})).sort((a,b)=>b.s-a.s);
-  const top = ranked[0].s > 0 ? ranked[0].it : TEMPLATE_DB["l"][0];
-  aiBest = top;
-  return ranked.filter(x=>x.s>0).slice(0,4).map(x=>x.it);
-}
-
-function studioExample(prompt){
-  const p = norm(prompt);
-  const wantsTap = p.includes("タップ") || p.includes("tap") || p.includes("クリック");
-  const wantsToggle = p.includes("トグル") || p.includes("toggle") || p.includes("on/off") || p.includes("切り替え");
-  const wantsCounter = p.includes("カウンター") || p.includes("counter") || p.includes("回数");
-
-  let code =
-`-- Roblox Studio用 LocalScript（自作ゲーム向け）
+      let code =
+`-- Roblox Studio用 LocalScript
 -- 置き場所：StarterPlayer > StarterPlayerScripts
 
 local Players = game:GetService("Players")
@@ -608,8 +677,8 @@ label.Text = "Hello LocalScript"
 label.Parent = gui
 `;
 
-  if (wantsToggle){
-    code +=
+      if (wantsToggle){
+        code +=
 `
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 300, 0, 50)
@@ -628,9 +697,10 @@ button.MouseButton1Click:Connect(function()
   refresh()
 end)
 `;
-  }
-  if (wantsCounter){
-    code +=
+      }
+
+      if (wantsCounter){
+        code +=
 `
 local count = 0
 local inc = Instance.new("TextButton")
@@ -644,9 +714,10 @@ inc.MouseButton1Click:Connect(function()
   label.Text = "count = " .. count
 end)
 `;
-  }
-  if (wantsTap){
-    code +=
+      }
+
+      if (wantsTap){
+        code +=
 `
 UIS.InputBegan:Connect(function(input, gameProcessed)
   if gameProcessed then return end
@@ -657,115 +728,86 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
   end
 end)
 `;
-  }
+      }
 
-  code +=
+      code +=
 `
 -- メモ：
 -- LocalScriptは「入力」「GUI」「カメラ」など “自分だけの体験” が得意。
--- 共有したい処理はサーバー側（Script）＋RemoteEventでやる。
+-- 共有したい処理はサーバー側（Script）＋RemoteEventで。
 `;
-  return code;
-}
+      return code;
+    }
 
-function aiHandle(text){
-  if (isUnsafe(text)) {
-    aiWrite("AI",
+    function aiHandle(text){
+      if (isUnsafe(text)) {
+        addMsg("AI",
 `それは不正利用（チート/回避/エグゼキュータ等）につながる可能性が高いから手伝えない。
-代わりに「自作ゲーム向けの学習（UI/入力/状態管理/Studioでの正規API）」ならOK。
+でも、自作ゲームの学習・開発（UI/入力/状態管理/Studioの正規API）はOK。
 
 例：
 - ボタンでON/OFF切り替えたい
 - タップ座標を表示したい
 - カウンターを作りたい`);
-    aiBest = TEMPLATE_DB["l"][0];
-    return;
-  }
+        aiBest = TEMPLATE_DB["l"][0];
+        return;
+      }
 
-  const p = norm(text);
-  if (p.includes("studio")) {
-    aiWrite("AI", "【Roblox Studio用 LocalScript例】\n" + studioExample(text));
-    return;
-  }
+      const p = norm(text);
 
-  const picks = pickTemplates(text);
-  const lines = picks.map((t,i)=>`${i+1}. ${t.key} — ${t.desc}`).join("\n");
-  aiWrite("AI", `おすすめ候補：\n${lines}\n\nいちばん合いそう：${aiBest.key}\n（「おすすめをエディタに挿入」で入れられる）`);
-  showDoc(aiBest);
-}
+      if (p.includes("studio")) {
+        addMsg("AI", "【Roblox Studio用 LocalScript例】\n" + studioExample(text) +
+          "\n\n※ これはStudio用。DojoのRunでは動かない（gameが無いから）");
+        // Studio例は挿入対象にしない（混乱防止）
+        aiBest = TEMPLATE_DB["l"][0];
+        showDoc(aiBest);
+        return;
+      }
 
-aiSend.onclick = ()=>{
-  const text = aiInput.value.trim();
-  if(!text) return;
-  aiWrite("You", text);
-  aiInput.value = "";
-  aiHandle(text);
-};
-
-aiInsert.onclick = ()=>{
-  if (!aiBest || !aiBest.code) {
-    aiWrite("AI", "先に送信しておすすめを出してね。");
-    return;
-  }
-
-  // まず保険：textareaにも入れる（必ず存在する）
-  const fb = document.getElementById("editorFallback");
-  if (fb) fb.value = aiBest.code;
-
-  const ed = window.__dojoMonacoEditor;
-  const model = window.__dojoMonacoModel;
-
-  // デバッグ表示（ここ重要）
-  aiWrite("AI", "DEBUG: ed=" + (!!ed) + " model=" + (!!model) + " codeLen=" + aiBest.code.length);
-
-  if (ed && model && typeof model.setValue === "function") {
-    try {
-      model.setValue(aiBest.code);    // ← 一番確実
-　　　　// カーソルを「次の行の先頭」へ（例：9→10）
-const p = ed.getPosition(); // いまの行
-const nextLine = Math.min(p.lineNumber + 1, model.getLineCount());
-ed.setPosition({ lineNumber: nextLine, column: 1 });
-ed.revealLineInCenter(nextLine);
-      ed.focus();
-
-      // “本当に入ったか”を長さで確認
-      const now = model.getValue().length;
-      aiWrite("AI", "DEBUG: after setValue len=" + now);
-
-      // 目視でも変化させる（カーソルを最後へ）
-      const lineCount = model.getLineCount();
-      const lastCol = model.getLineMaxColumn(lineCount);
-      ed.setPosition({ lineNumber: lineCount, column: lastCol });
-      ed.revealPositionInCenter({ lineNumber: lineCount, column: lastCol });
-
-      aiWrite("AI", `Monacoに挿入した：${aiBest.key}`);
-    } catch (e) {
-      aiWrite("AI", "挿入エラー: " + (e.message || e));
+      const picks = pickDojo(text);
+      const lines = picks.map((t,i)=>`${i+1}. ${t.key} — ${t.desc}`).join("\n");
+      addMsg("AI", `おすすめ候補（DojoでRunできる）：\n${lines}\n\nいちばん：${aiBest.key}\n「おすすめを挿入」で入れられる`);
+      showDoc(aiBest);
     }
-  } else {
-    aiWrite("AI", "Monaco未準備。textareaに入れてる（下の白い方を確認して）");
-    if (fb) fb.focus();
-  }
-};
 
-aiClear.onclick = ()=>{
-  aiLog.innerHTML = "";
-  aiWrite("AI", "AIログを消した。やりたいことを送って。例：『カウンターを作りたい』");
-};
+    aiSend.onclick = ()=>{
+      const text = aiInput.value.trim();
+      if(!text) return;
+      addMsg("You", text);
+      aiInput.value = "";
+      aiHandle(text);
+    };
 
-document.querySelectorAll(".aiChip").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    aiInput.value = btn.getAttribute("data-q");
-    aiSend.click();
-  });
-});
+    aiInsert.onclick = ()=>{
+      if (!aiBest || !aiBest.code) {
+        addMsg("AI","先に送信しておすすめを出してね。");
+        return;
+      }
+      setEditorTextSmart(aiBest.code);
+      showDoc(aiBest);
+      addMsg("AI", `挿入した：${aiBest.key}（カーソルは次の行へ）`);
+      hideSuggest();
+    };
 
-// 初期メッセージ
-aiWrite("AI",
+    aiClear.onclick = ()=>{
+      aiLog.innerHTML = "";
+      addMsg("AI","AIログを消した。やりたいことを送って。例：『カウンター作りたい』");
+    };
+
+    document.querySelectorAll("[data-q]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        aiInput.value = btn.getAttribute("data-q");
+        aiSend.click();
+      });
+    });
+
+    addMsg("AI",
 `使い方：
-- 文章でやりたいことを書く → おすすめテンプレ提案
-- "studio" を含めると Studio用LocalScript例を出す
-- 「おすすめをエディタに挿入」でワンタップ挿入`);
+- エディタで「l」→テンプレ
+- エディタで「service」「input」「ui」→辞書
+- AIに文章→おすすめ→「おすすめを挿入」
+
+※ Studio用コードはDojoのRunでは動かない（gameが無い）ので、Studioへ貼る用。`);
   </script>
 </body>
 </html>
