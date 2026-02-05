@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dojo Core (Debug)</title>
+<title>Dojo Core (Fixed)</title>
 
 <button id="run">Run</button>
 <button id="reset">Reset</button>
@@ -14,7 +14,6 @@
   background:#f7f7f7;position:relative;overflow:hidden">
 </div>
 
-<!-- Lua VM (stable CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
 
 <script>
@@ -25,59 +24,67 @@ let tapHandlers = [];
 
 function log(s){ out.textContent += String(s) + "\n"; }
 
-// Tap -> call Lua handlers
+// タップ検知
 stage.onclick = (e)=>{
   if(!running) return;
   const r = stage.getBoundingClientRect();
   const x = Math.round(e.clientX - r.left);
   const y = Math.round(e.clientY - r.top);
-  for (const fn of tapHandlers) {
-    try { fn(x,y); } catch(err) { log("JS handler error: " + err); }
-  }
+  tapHandlers.forEach(fn => fn(x,y));
 };
 
-// JS functions visible to Lua
-window.appendOutput = (s)=> { out.textContent += String(s); };
-window.__inputOnTap = (fn)=> { tapHandlers.push(fn); };
+// Luaから呼ばれる関数
+window.appendOutput = (s)=> out.textContent += String(s);
+window.__inputOnTap = (fn)=> tapHandlers.push(fn);
 
-function wrap(code){
+// Luaラッパー（← ここ重要）
+function wrap(userCode){
   return `
-Input={}
-function Input.onTap(fn) js.global:__inputOnTap(fn) end
-print=function(...)
-  local t={}
-  for i=1,select('#',...) do t[#t+1]=tostring(select(i,...)) end
-  js.global:appendOutput(table.concat(t," ").."\\n")
+Input = {}
+
+function Input.onTap(fn)
+  js.global:__inputOnTap(fn)
 end
-${code}`;
+
+print = function(...)
+  local t = {}
+  for i=1,select('#', ...) do
+    t[#t+1] = tostring(select(i, ...))
+  end
+  js.global:appendOutput(table.concat(t, " ") .. "\\n")
+end
+
+${userCode}
+`;
 }
 
 document.getElementById("run").onclick = ()=>{
-  out.textContent="";
-  tapHandlers=[];
-  running=true;
+  out.textContent = "";
+  tapHandlers = [];
+  running = true;
 
-  // Engine check
   if (!window.fengari || !fengari.load) {
-    log("Lua engineが読み込めてない。");
-    log("・通信がない / コンテンツブロッカー / URLミスの可能性");
+    log("Lua engineが読み込めてない");
     return;
   }
 
-  // Run Lua (with error display)
   try {
-    const code =
-      'Input.onTap(function(x,y) print("Tap:",x,y) end)\\n' +
-      'print("Ready! Tap the stage")';
-    fengari.load(wrap(code))();
+    const userLua = `
+Input.onTap(function(x, y)
+  print("Tap:", x, y)
+end)
+
+print("Ready! Tap the stage")
+`;
+    fengari.load(wrap(userLua))();
   } catch (e) {
-    log("Lua Error: " + (e && e.message ? e.message : e));
+    log("Lua Error: " + (e.message || e));
   }
 };
 
 document.getElementById("reset").onclick = ()=>{
-  running=false;
-  tapHandlers=[];
-  out.textContent="";
+  running = false;
+  tapHandlers = [];
+  out.textContent = "";
 };
 </script>
