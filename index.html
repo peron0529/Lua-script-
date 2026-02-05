@@ -380,59 +380,113 @@ end)`
     // ※ DojoでRunするとエラーになるのは仕様（gameがないため）
     // =========================
     const LS_DB = [
-  // ===== 基本 =====
-  { key:"service.get", tags:["Studio","基本","Service"], desc:"Service取得（GetService）",
+  // =====================
+  // BASICS / SERVICES
+  // =====================
+  { key:"service.get", tags:["Studio","basic","Service"], desc:"Service取得（GetService）",
     doc:"Serviceはこれで取る。LocalScriptの基本。",
     code:`local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")` },
+local CAS = game:GetService("ContextActionService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")` },
 
+  { key:"service.waitChild", tags:["Studio","basic"], desc:"WaitForChildの定番",
+    doc:"存在するまで待つ。親や名前が間違ってると永久待ちになるので注意。",
+    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local remotes = ReplicatedStorage:WaitForChild("Remotes")
+local myRemote = remotes:WaitForChild("MyRemoteEvent")` },
+
+  // =====================
+  // PLAYER / CHARACTER
+  // =====================
   { key:"player.local", tags:["Studio","Players","LocalPlayer"], desc:"LocalPlayer取得",
     doc:"LocalScriptで自分のプレイヤー。",
     code:`local Players = game:GetService("Players")
 local player = Players.LocalPlayer` },
 
-  // ===== Character =====
-  { key:"char.get", tags:["Studio","Character","Humanoid"], desc:"Character / Humanoid取得",
-    doc:"リスポーンでCharacterが変わるので CharacterAdded を使うのが安全。",
+  { key:"char.hook", tags:["Studio","Character","pattern"], desc:"CharacterAddedの安全テンプレ",
+    doc:"リスポーンでCharacterが変わる。hook関数でまとめるのが定番。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function hook(char)
+  print("Character:", char.Name)
+end
+
+if player.Character then hook(player.Character) end
+player.CharacterAdded:Connect(hook)` },
+
+  { key:"char.humanoid", tags:["Studio","Character","Humanoid"], desc:"Humanoid取得",
+    doc:"Humanoidはキャラの基本。WaitForChildで取る。",
     code:`local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 local function hook(char)
   local hum = char:WaitForChild("Humanoid")
-  print("Humanoid:", hum)
+  print("WalkSpeed:", hum.WalkSpeed)
 end
-
 if player.Character then hook(player.Character) end
 player.CharacterAdded:Connect(hook)` },
 
   { key:"char.rootpart", tags:["Studio","Character","RootPart"], desc:"HumanoidRootPart取得",
-    doc:"位置/移動の基準に使うことが多い。",
+    doc:"位置/向き/移動の基準。",
     code:`local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 local function hook(char)
   local root = char:WaitForChild("HumanoidRootPart")
-  print("Root:", root.Position)
+  print("Pos:", root.Position)
 end
 if player.Character then hook(player.Character) end
 player.CharacterAdded:Connect(hook)` },
 
-  // ===== Input =====
-  { key:"input.tap", tags:["Studio","Input","Touch","Mouse"], desc:"タップ/クリック（UIS.InputBegan）",
-    doc:"モバイル/PC両対応。UI操作中は gameProcessed が true になりやすい。",
+  { key:"char.died", tags:["Studio","Character","Humanoid","event"], desc:"Humanoid.Diedイベント",
+    doc:"死んだ瞬間に呼ばれる。リスポーンで再接続が必要。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function hook(char)
+  local hum = char:WaitForChild("Humanoid")
+  hum.Died:Connect(function()
+    print("Died!")
+  end)
+end
+if player.Character then hook(player.Character) end
+player.CharacterAdded:Connect(hook)` },
+
+  { key:"char.healthChanged", tags:["Studio","Character","Humanoid","event"], desc:"HealthChangedイベント",
+    doc:"体力が変わるたび呼ばれる。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function hook(char)
+  local hum = char:WaitForChild("Humanoid")
+  hum.HealthChanged:Connect(function(hp)
+    print("HP:", hp)
+  end)
+end
+if player.Character then hook(player.Character) end
+player.CharacterAdded:Connect(hook)` },
+
+  // =====================
+  // INPUT (UIS / CAS)
+  // =====================
+  { key:"input.tap", tags:["Studio","Input","UIS","Touch","Mouse"], desc:"タップ/クリック（InputBegan）",
+    doc:"モバイル/PC両対応。gameProcessedはUI操作でtrueになりやすい。",
     code:`local UIS = game:GetService("UserInputService")
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
   if gameProcessed then return end
   if input.UserInputType == Enum.UserInputType.Touch
     or input.UserInputType == Enum.UserInputType.MouseButton1 then
-    print("Tapped/Clicked")
+    print("Tap/Click")
   end
 end)` },
 
-  { key:"input.key", tags:["Studio","Input","Keyboard"], desc:"キー入力（Enum.KeyCode）",
-    doc:"PC向け。モバイルは別UIが必要。",
+  { key:"input.key", tags:["Studio","Input","Keyboard"], desc:"キー入力（KeyCode）",
+    doc:"PC向け。モバイルはCASでボタン出すのが楽。",
     code:`local UIS = game:GetService("UserInputService")
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -442,13 +496,33 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
   end
 end)` },
 
-  { key:"cas.bind", tags:["Studio","Input","ContextActionService"], desc:"アクション登録（CAS）",
-    doc:"モバイルボタンも自動で出せる。LocalScriptで超便利。",
+  { key:"input.mousePos", tags:["Studio","Input","Mouse"], desc:"マウス/タッチ位置（GetMouseLocation）",
+    doc:"UI座標っぽいスクリーン座標。",
+    code:`local UIS = game:GetService("UserInputService")
+local pos = UIS:GetMouseLocation()
+print(pos.X, pos.Y)` },
+
+  { key:"input.changed", tags:["Studio","Input","UIS"], desc:"InputChanged（ドラッグ等）",
+    doc:"指を動かしてる間のイベント。タッチドラッグUIにも使える。",
+    code:`local UIS = game:GetService("UserInputService")
+
+UIS.InputChanged:Connect(function(input, gameProcessed)
+  if gameProcessed then return end
+  if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseMovement then
+    -- input.Position が使える
+  end
+end)` },
+
+  { key:"cas.bind", tags:["Studio","Input","CAS","Mobile"], desc:"CASでアクション登録（ボタンも出る）",
+    doc:"モバイルで画面ボタンを出せる最強枠。Begin/Endで押しっぱ対応も可能。",
     code:`local CAS = game:GetService("ContextActionService")
 
 local function onAction(name, state, input)
   if state == Enum.UserInputState.Begin then
-    print("Action:", name)
+    print("Begin:", name)
+  elseif state == Enum.UserInputState.End then
+    print("End:", name)
   end
   return Enum.ContextActionResult.Sink
 end
@@ -457,9 +531,16 @@ CAS:BindAction("DojoAction", onAction, true, Enum.KeyCode.E)
 CAS:SetTitle("DojoAction", "ACTION")
 CAS:SetPosition("DojoAction", UDim2.new(0.8, 0, 0.8, 0))` },
 
-  // ===== UI =====
-  { key:"ui.screenGui", tags:["Studio","UI","ScreenGui"], desc:"ScreenGui作成",
-    doc:"PlayerGui配下に作るのが基本。",
+  { key:"cas.unbind", tags:["Studio","Input","CAS"], desc:"CAS解除（UnbindAction）",
+    doc:"いらなくなったら解除。画面ボタンも消える。",
+    code:`local CAS = game:GetService("ContextActionService")
+CAS:UnbindAction("DojoAction")` },
+
+  // =====================
+  // UI (ScreenGui / Button / Layout)
+  // =====================
+  { key:"ui.screenGui", tags:["Studio","UI","ScreenGui"], desc:"ScreenGui作成（PlayerGui）",
+    doc:"LocalScriptでUIを作る土台。",
     code:`local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
@@ -468,26 +549,51 @@ gui.Name = "DojoGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")` },
 
+  { key:"ui.frame", tags:["Studio","UI","Frame"], desc:"Frame作成（パネル）",
+    doc:"UIの箱。背景や角丸を作って“アプリ感”出せる。",
+    code:`local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 220)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundTransparency = 0.05
+frame.Parent = gui` },
+
+  { key:"ui.corner", tags:["Studio","UI","UICorner"], desc:"角丸（UICorner）",
+    doc:"Frame/Buttonに付けると角丸になる。",
+    code:`local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 14)
+corner.Parent = frame` },
+
+  { key:"ui.stroke", tags:["Studio","UI","UIStroke"], desc:"枠線（UIStroke）",
+    doc:"アウトライン。見やすくなる。",
+    code:`local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Parent = frame` },
+
+  { key:"ui.label", tags:["Studio","UI","TextLabel"], desc:"TextLabel（表示）",
+    doc:"テキスト表示。",
+    code:`local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, -20, 0, 40)
+label.Position = UDim2.new(0, 10, 0, 10)
+label.BackgroundTransparency = 1
+label.Text = "Hello"
+label.TextScaled = true
+label.Parent = frame` },
+
   { key:"ui.button", tags:["Studio","UI","TextButton"], desc:"TextButton（クリック）",
-    doc:"ボタンの基本。Parentはgui（ScreenGui）など。",
+    doc:"ボタン基本。押したら何するかをConnectで書く。",
     code:`local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 280, 0, 50)
-btn.Position = UDim2.new(0, 20, 0, 80)
+btn.Size = UDim2.new(1, -20, 0, 50)
+btn.Position = UDim2.new(0, 10, 0, 60)
 btn.Text = "CLICK"
-btn.Parent = gui
+btn.Parent = frame
 
 btn.MouseButton1Click:Connect(function()
   print("clicked")
 end)` },
 
-  { key:"ui.toggle", tags:["Studio","UI","pattern","ON/OFF"], desc:"UIトグル（ON/OFF）",
-    doc:"ボタンで状態切替の超定番。",
+  { key:"ui.toggle", tags:["Studio","UI","pattern","ON/OFF"], desc:"ボタンでON/OFFトグル",
+    doc:"on = not on の定番。UIに繋げる。",
     code:`local on = false
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 280, 0, 50)
-btn.Position = UDim2.new(0, 20, 0, 140)
-btn.Parent = gui
-
 local function refresh()
   btn.Text = on and "ON" or "OFF"
 end
@@ -498,52 +604,169 @@ btn.MouseButton1Click:Connect(function()
   refresh()
 end)` },
 
-  // ===== RunService / Loop =====
+  { key:"ui.listLayout", tags:["Studio","UI","UIListLayout"], desc:"縦並び（UIListLayout）",
+    doc:"勝手に縦に並ぶ。Spacingで間隔。",
+    code:`local list = Instance.new("UIListLayout")
+list.Padding = UDim.new(0, 10)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.Parent = frame` },
+
+  { key:"ui.padding", tags:["Studio","UI","UIPadding"], desc:"余白（UIPadding）",
+    doc:"Frameの内側余白。",
+    code:`local pad = Instance.new("UIPadding")
+pad.PaddingLeft = UDim.new(0, 12)
+pad.PaddingRight = UDim.new(0, 12)
+pad.PaddingTop = UDim.new(0, 12)
+pad.PaddingBottom = UDim.new(0, 12)
+pad.Parent = frame` },
+
+  // =====================
+  // RUNSERVICE / LOOPS
+  // =====================
   { key:"loop.render", tags:["Studio","RunService","RenderStepped"], desc:"毎フレーム（RenderStepped）",
-    doc:"カメラ/見た目系に。重い処理は避ける。",
+    doc:"見た目やカメラ向き。重い処理NG。",
     code:`local RunService = game:GetService("RunService")
 RunService.RenderStepped:Connect(function(dt)
   -- dt: 秒
 end)` },
 
   { key:"loop.heartbeat", tags:["Studio","RunService","Heartbeat"], desc:"毎フレーム（Heartbeat）",
-    doc:"物理の後に来やすい。ゲーム処理に使うことも。",
+    doc:"物理の後。ゲーム処理寄り。",
     code:`local RunService = game:GetService("RunService")
 RunService.Heartbeat:Connect(function(dt)
 end)` },
 
-  // ===== Tween =====
-  { key:"tween.basic", tags:["Studio","TweenService","Tween"], desc:"Tween基本",
+  { key:"loop.stepped", tags:["Studio","RunService","Stepped"], desc:"毎フレーム（Stepped）",
+    doc:"古めだけど使うこともある。",
+    code:`local RunService = game:GetService("RunService")
+RunService.Stepped:Connect(function(time, dt)
+end)` },
+
+  // =====================
+  // TWEEN
+  // =====================
+  { key:"tween.create", tags:["Studio","TweenService","Tween"], desc:"Tween作成（Create）",
     doc:"UI/パーツを滑らかに動かす。",
     code:`local TweenService = game:GetService("TweenService")
-local ti = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
--- 例：btnの透明度を変える
-local tween = TweenService:Create(btn, ti, {BackgroundTransparency = 0.2})
+local info = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local tween = TweenService:Create(frame, info, {Position = UDim2.new(0, 20, 0, 60)})
 tween:Play()` },
 
-  // ===== Camera =====
-  { key:"camera.fov", tags:["Studio","Camera"], desc:"カメラFOV変更",
-    doc:"LocalScriptでCurrentCameraを触る。",
+  { key:"tween.cancel", tags:["Studio","TweenService"], desc:"Tweenキャンセル（Cancel）",
+    doc:"途中で止める。",
+    code:`tween:Cancel()` },
+
+  // =====================
+  // CAMERA
+  // =====================
+  { key:"camera.get", tags:["Studio","Camera"], desc:"CurrentCamera取得",
+    doc:"LocalScriptでカメラ操作。",
+    code:`local cam = workspace.CurrentCamera
+print(cam.FieldOfView)` },
+
+  { key:"camera.fov", tags:["Studio","Camera"], desc:"FOV変更",
+    doc:"視野角を変える。",
     code:`local cam = workspace.CurrentCamera
 cam.FieldOfView = 80` },
 
-  // ===== Remotes（正規のクライアント通信）=====
+  { key:"camera.subject", tags:["Studio","Camera"], desc:"CameraSubject変更",
+    doc:"カメラの追従対象を変える。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local cam = workspace.CurrentCamera
+cam.CameraSubject = player.Character and player.Character:WaitForChild("Humanoid")` },
+
+  // =====================
+  // SOUND
+  // =====================
+  { key:"sound.play", tags:["Studio","Sound"], desc:"Soundを鳴らす（Play）",
+    doc:"SoundIdは rbxassetid:// 形式。音はWorkspace/Gui等に置ける。",
+    code:`local s = Instance.new("Sound")
+s.SoundId = "rbxassetid://0"
+s.Volume = 0.5
+s.Parent = workspace
+s:Play()` },
+
+  // =====================
+  // ANIMATION (基本だけ)
+  // =====================
+  { key:"anim.load", tags:["Studio","Animation","Humanoid"], desc:"アニメ再生（LoadAnimation）",
+    doc:"Humanoid + Animatorを使う。アニメIDは assetid。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function hook(char)
+  local hum = char:WaitForChild("Humanoid")
+  local animator = hum:WaitForChild("Animator")
+
+  local anim = Instance.new("Animation")
+  anim.AnimationId = "rbxassetid://0"
+
+  local track = animator:LoadAnimation(anim)
+  track:Play()
+end
+
+if player.Character then hook(player.Character) end
+player.CharacterAdded:Connect(hook)` },
+
+  // =====================
+  // TOOL
+  // =====================
+  { key:"tool.detect", tags:["Studio","Tool","Backpack"], desc:"Tool装備検知（ChildAdded）",
+    doc:"Backpack/Characterを監視して装備を判定。",
+    code:`local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+player.Backpack.ChildAdded:Connect(function(child)
+  if child:IsA("Tool") then
+    print("Got tool:", child.Name)
+  end
+end)` },
+
+  // =====================
+  // PART / TOUCH (クライアント側判定)
+  // =====================
+  { key:"part.touched", tags:["Studio","Part","Touched"], desc:"Part.Touched（注意あり）",
+    doc:"Touchedはクライアントでズレることがある。重要判定はサーバー推奨。",
+    code:`local part = workspace:WaitForChild("MyPart")
+
+part.Touched:Connect(function(hit)
+  print("Touched by:", hit.Name)
+end)` },
+
+  // =====================
+  // REMOTES (正規)
+  // =====================
   { key:"remote.fire", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent:FireServer",
-    doc:"サーバーに通知する正規手段。RemoteEventはReplicatedStorage等に置く。",
+    doc:"サーバーに通知する正規手段。",
     code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("MyRemoteEvent")
-
 Remote:FireServer("hello", 123)` },
 
-  { key:"remote.on", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent.OnClientEvent",
-    doc:"サーバーからクライアントへ通知を受け取る。",
+  { key:"remote.onClient", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent.OnClientEvent",
+    doc:"サーバー→クライアント通知を受け取る。",
     code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("MyRemoteEvent")
 
 Remote.OnClientEvent:Connect(function(msg, n)
   print("From server:", msg, n)
 end)` },
+
+  { key:"remote.invoke", tags:["Studio","RemoteFunction","Client"], desc:"RemoteFunction:InvokeServer",
+    doc:"サーバーに問い合わせ（返り値を受け取る）。重い処理は注意。",
+    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RF = ReplicatedStorage:WaitForChild("MyRemoteFunction")
+
+local result = RF:InvokeServer("ping")
+print("result:", result)` },
+
+  // =====================
+  // DATASTORE (注意：サーバーでやる)
+  // =====================
+  { key:"note.datastore", tags:["Note","DataStore"], desc:"注意：DataStoreはサーバー専用",
+    doc:"DataStoreはLocalScriptでは基本扱わない。Server Scriptでやる。",
+    code:`-- DataStoreはサーバー（Script）でやる！
+-- LocalScriptではRemoteでサーバーに依頼するのが基本。` },
 ];
 
     // =========================
