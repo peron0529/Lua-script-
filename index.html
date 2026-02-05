@@ -3,166 +3,105 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LocalScript Dojo（完全版）</title>
-
+<title>Dojo (Stable)</title>
 <style>
-  body{
-    margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,system-ui;
-    background:#0f1220;
-    color:#eaeaf0;
-  }
-  header{
-    padding:12px;
-    background:#171a2e;
-    font-weight:800;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-  }
-  header small{opacity:.7;font-weight:600}
-  #editor{height:58vh;}
-  #panel{
-    padding:10px;
-    background:#171a2e;
-    border-top:1px solid rgba(255,255,255,.06);
-  }
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  button{
-    padding:8px 12px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.12);
-    background:#4c6ef5;
-    color:white;
-    font-weight:700;
-  }
-  button:active{transform:scale(.98)}
-  .ghost{
-    background:transparent;
-    border:1px solid rgba(255,255,255,.18);
-  }
-  #log{
-    margin-top:10px;
-    font-size:13px;
-    opacity:.9;
-    white-space:pre-wrap;
-    line-height:1.35;
-  }
+  body{margin:0;font-family:-apple-system,system-ui;background:#0f1220;color:#eaeaf0}
+  header{padding:12px;background:#171a2e;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+  #editor{height:62vh}
+  #panel{padding:10px;background:#171a2e;border-top:1px solid rgba(255,255,255,.08)}
+  button{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#4c6ef5;color:#fff;font-weight:800}
+  button.ghost{background:transparent}
+  #log{margin-top:10px;font-size:13px;white-space:pre-wrap;opacity:.9;line-height:1.35}
 </style>
-
-<!-- Monaco loader -->
 <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 </head>
-
 <body>
+
 <header>
-  <div>LocalScript Dojo <small>（Monaco + 候補）</small></div>
-  <small id="status">loading...</small>
+  <div>Dojo Stable</div>
+  <div id="status" style="opacity:.7;font-weight:700">loading...</div>
 </header>
 
 <div id="editor"></div>
 
 <div id="panel">
-  <div class="row">
-    <button id="suggestBtn">補完を出す</button>
-    <button class="ghost" id="insertLocalBtn">local を挿入</button>
-    <button class="ghost" id="resetBtn">リセット</button>
-  </div>
+  <button id="btnSuggest">補完を出す</button>
+  <button id="btnInsert" class="ghost">local を挿入</button>
+  <button id="btnReset" class="ghost">リセット</button>
   <div id="log">ready.</div>
 </div>
 
 <script>
-/* ===== エラーを画面に出す（iPhone用の保険） ===== */
+// ===== 画面にエラー表示（iPhone用）=====
 window.onerror = function(msg, src, line, col){
-  const el = document.getElementById("log");
   const st = document.getElementById("status");
+  const log = document.getElementById("log");
   if (st) st.textContent = "error";
-  if (el) el.textContent = "JS ERROR:\n" + msg + "\n" + (src||"") + ":" + line + ":" + col;
+  if (log) log.textContent =
+    "JS ERROR:\n" + msg + "\n" + (src||"") + ":" + line + ":" + col;
 };
 
-/* ===== 候補データ（必要最低限） ===== */
+// ===== 候補（localだけ）=====
 const LS_DB = [
-  // ★ これが欲しかったやつ：local だけ（選ぶと `local ` が入る）
-  { key:"local", desc:"Luaのlocalキーワード", code:`local ` },
-
-  // ついでに超基本も少し（邪魔なら消してOK）
-  { key:"local.simple", desc:"local変数の基本", code:`local x = 1\nprint(x)` },
-  { key:"function.basic", desc:"関数の基本", code:`local function hello()\n  print("hello")\nend\n\nhello()` },
+  { key:"local", desc:"Luaのlocalキーワード", code:"local " },
 ];
 
-/* ===== Monaco 起動 ===== */
+// ===== Monaco起動 =====
 require.config({ paths:{ vs:"https://unpkg.com/monaco-editor@0.45.0/min/vs" }});
-
 require(["vs/editor/editor.main"], function(){
   const status = document.getElementById("status");
   const log = document.getElementById("log");
 
-  // lua 言語ID登録（補完が出ない事故を防ぐ）
   try { monaco.languages.register({ id:"lua" }); } catch(e){}
 
   const editor = monaco.editor.create(document.getElementById("editor"), {
-    value: `-- ここにLuaを書く\n-- local と打って補完を出してみて\n\n`,
+    value: "-- local と打ってみて\n\n",
     language: "lua",
     theme: "vs-dark",
-    quickSuggestions: true,
-    suggestOnTriggerCharacters: true,
-    tabCompletion: "on",
-    minimap: { enabled: false },
+    minimap: { enabled:false },
     fontSize: 14,
     wordWrap: "on",
-    scrollBeyondLastLine: false
+    quickSuggestions: true,
+    suggestOnTriggerCharacters: true,
+    tabCompletion: "on"
   });
 
-  // ===== 補完（LS_DBを候補にする） =====
-  // - label: 表示名
-  // - insertText: 挿入される文字
-  // - kind: Keyword/Snippet など
+  // 補完登録（localだけ）
   monaco.languages.registerCompletionItemProvider("lua", {
-    triggerCharacters: ["l", ".", "_"],
     provideCompletionItems: () => ({
       suggestions: LS_DB.map(it => ({
         label: it.key,
-        kind: it.key === "local"
-          ? monaco.languages.CompletionItemKind.Keyword
-          : monaco.languages.CompletionItemKind.Snippet,
-        insertText: it.code || "",
-        documentation: (it.desc || ""),
-        // これを入れるとスニペット的に入れられる（キーワードでも害なし）
-        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+        kind: monaco.languages.CompletionItemKind.Keyword,
+        insertText: it.code,
+        documentation: it.desc
       }))
     })
   });
 
-  // ===== iPhone対策：最初に一回だけ補完を開く（出ない時の保険） =====
-  setTimeout(() => {
-    try { editor.trigger("dojo", "editor.action.triggerSuggest", {}); } catch(e){}
-  }, 250);
-
-  // ===== UIボタン =====
-  document.getElementById("suggestBtn").onclick = ()=>{
-    try { editor.trigger("manual", "editor.action.triggerSuggest", {}); } catch(e){}
+  // ボタン
+  document.getElementById("btnSuggest").onclick = ()=>{
+    try { editor.trigger("manual","editor.action.triggerSuggest",{}); } catch(e){}
   };
-
-  document.getElementById("insertLocalBtn").onclick = ()=>{
-    const pos = editor.getPosition() || { lineNumber:1, column:1 };
-    editor.executeEdits("localInsert", [{
-      range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
+  document.getElementById("btnInsert").onclick = ()=>{
+    const p = editor.getPosition() || {lineNumber:1,column:1};
+    editor.executeEdits("ins", [{
+      range: new monaco.Range(p.lineNumber, p.column, p.lineNumber, p.column),
       text: "local "
     }]);
     editor.focus();
-    log.textContent = "挿入: local";
+    log.textContent = "inserted: local";
   };
-
-  document.getElementById("resetBtn").onclick = ()=>{
-    editor.setValue(`-- ここにLuaを書く\n-- local と打って補完を出してみて\n\n`);
+  document.getElementById("btnReset").onclick = ()=>{
+    editor.setValue("-- local と打ってみて\n\n");
     editor.focus();
     log.textContent = "reset";
   };
 
-  // 状態表示
+  // 最初に一回だけ補完を開く（iPhone対策）
+  setTimeout(()=>{ try { editor.trigger("auto","editor.action.triggerSuggest",{}); } catch(e){} }, 250);
+
   if (status) status.textContent = "ready";
-  log.textContent = "Monaco ready. ためしに「local」と打って補完を選んでね。";
+  log.textContent = "OK：local が候補に出るはず。出なければ『補完を出す』を押して。";
 });
 </script>
 
