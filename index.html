@@ -449,40 +449,40 @@ set(not on)`
     }
 
     function handleSuggest(){
-      const text = getEditorText();
-      const tok = currentToken(text);
-      if (!tok) return hideSuggest();
+  const text = getEditorText();
+  const tok = currentToken(text);
+  if (!tok) { hideSuggest(); return; }
 
-      const first = tok[0];
-        // ===== LS_DB（LocalScript辞書）検索：英単語でも日本語タグでもOK =====
-  // 例：service / input / ui / player / state など
-  // ※ 1文字だけ（a〜z）はテンプレ優先にしたいので除外
-  if (tok.length >= 2) {
-    const q = tok.toLowerCase();
-    const listLS = (typeof LS_DB !== "undefined" ? LS_DB : []).filter(it =>
-      (it.key || "").toLowerCase().includes(q) ||
-      (it.desc || "").toLowerCase().includes(q) ||
-      (it.doc  || "").toLowerCase().includes(q) ||
-      ((it.tags || []).some(t => String(t).toLowerCase().includes(q)))
-    ).slice(0, 12);
+  const q = tok.toLowerCase();
 
-    if (listLS.length) {
-      showSuggest(listLS);
-      return;
-    }
+  // ===== 1) LS_DB検索（2文字以上で動く）=====
+  // service / input / ui / player など
+  if (q.length >= 2 && typeof LS_DB !== "undefined") {
+    const listLS = LS_DB.filter(it => {
+      const key  = String(it.key  || "").toLowerCase();
+      const desc = String(it.desc || "").toLowerCase();
+      const doc  = String(it.doc  || "").toLowerCase();
+      const tags = (it.tags || []).map(t => String(t).toLowerCase());
+      return key.includes(q) || desc.includes(q) || doc.includes(q) || tags.some(t => t.includes(q));
+    }).slice(0, 12);
+
+    if (listLS.length) { showSuggest(listLS); return; }
   }
-      if (!TEMPLATE_DB[first]) return hideSuggest();
 
-      const all = TEMPLATE_DB[first];
-      let list = all;
+  // ===== 2) A〜Zテンプレ検索（今まで通り）=====
+  const first = q[0];
+  if (!TEMPLATE_DB[first]) { hideSuggest(); return; }
 
-      // l.t みたいに入力が進んだら絞る
-      if (tok.length > 1) list = all.filter(x => x.key.startsWith(tok));
+  let list = TEMPLATE_DB[first];
 
-      list = list.slice(0, 12);
-      if (!list.length) return hideSuggest();
-      showSuggest(list);
-    }
+  // 例：l.t みたいに入力が進んだら絞る
+  if (q.length > 1) list = list.filter(x => x.key.startsWith(q));
+
+  list = list.slice(0, 12);
+  if (!list.length) { hideSuggest(); return; }
+
+  showSuggest(list);
+}
 
     // textarea監視
     editorFallback.addEventListener("input", handleSuggest);
