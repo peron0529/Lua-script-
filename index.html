@@ -454,6 +454,23 @@ set(not on)`
       if (!tok) return hideSuggest();
 
       const first = tok[0];
+        // ===== LS_DB（LocalScript辞書）検索：英単語でも日本語タグでもOK =====
+  // 例：service / input / ui / player / state など
+  // ※ 1文字だけ（a〜z）はテンプレ優先にしたいので除外
+  if (tok.length >= 2) {
+    const q = tok.toLowerCase();
+    const listLS = (typeof LS_DB !== "undefined" ? LS_DB : []).filter(it =>
+      (it.key || "").toLowerCase().includes(q) ||
+      (it.desc || "").toLowerCase().includes(q) ||
+      (it.doc  || "").toLowerCase().includes(q) ||
+      ((it.tags || []).some(t => String(t).toLowerCase().includes(q)))
+    ).slice(0, 12);
+
+    if (listLS.length) {
+      showSuggest(listLS);
+      return;
+    }
+  }
       if (!TEMPLATE_DB[first]) return hideSuggest();
 
       const all = TEMPLATE_DB[first];
