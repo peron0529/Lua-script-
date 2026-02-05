@@ -1,1144 +1,154 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dojo Ultimate — LocalScript Dojo</title>
-  <style>
-    body{font-family:-apple-system,system-ui,sans-serif;margin:12px}
-    h2{margin:8px 0}
-    .hint{opacity:.78;font-size:12px;line-height:1.35;margin:6px 0 10px}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:980px){.grid{grid-template-columns:1.15fr .85fr}}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-    button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fff}
-    button:active{transform:scale(.98)}
-    code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:8px}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LocalScript Dojo</title>
 
-    #out{background:#111;color:#0f0;padding:10px;border-radius:10px;min-height:110px;white-space:pre-wrap;overflow:auto}
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto;
+  background:#0f1220;
+  color:#eaeaf0;
+}
+header{
+  padding:12px;
+  background:#171a2e;
+  font-weight:700;
+}
+#editor{
+  height:55vh;
+}
+#panel{
+  padding:10px;
+  background:#171a2e;
+}
+button{
+  padding:6px 10px;
+  border-radius:6px;
+  border:none;
+  background:#4c6ef5;
+  color:white;
+}
+#log{
+  font-size:13px;
+  opacity:.9;
+  white-space:pre-wrap;
+}
+</style>
 
-    /* Editor */
-    #editorWrap{margin-top:10px}
-    #editorFallback{
-      width:100%; height:520px;
-      border:1px solid #ddd; border-radius:12px;
-      padding:10px;
-      font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size:14px; line-height:1.35;
-      box-sizing:border-box;
-    }
-    #editor{
-      width:100%; height:520px;
-      border:1px solid #ddd;border-radius:12px;
-      overflow:hidden;display:none;
-    }
-
-    /* Suggest */
-    #suggest{
-      display:none;
-      border:1px solid #ddd;
-      border-radius:12px;
-      padding:6px;
-      margin-top:8px;
-      background:#fff;
-      font-size:13px;
-      max-height:240px;
-      overflow:auto;
-    }
-    .sItem{
-      padding:8px;
-      border-radius:10px;
-      cursor:pointer;
-      border:1px solid rgba(0,0,0,0.06);
-      margin:6px 0;
-    }
-    .sItem:active{transform:scale(.99)}
-    .sKey{font-weight:900}
-    .sDesc{opacity:.7;font-size:12px;margin-top:2px}
-    .sTag{opacity:.55;font-size:11px;margin-top:2px}
-
-    /* Doc */
-    .panel{border:1px solid #ddd;border-radius:12px;background:#fff;padding:10px}
-    .panelTitle{font-weight:900;display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .pill{font-size:12px;padding:3px 8px;border:1px solid #ddd;border-radius:999px;opacity:.75}
-    #docTitle{font-weight:900;margin-top:8px}
-    #docBody{opacity:.85;margin-top:8px;white-space:pre-wrap;font-size:13px;line-height:1.35}
-
-    /* Stage */
-    #stage{
-      width:100%;max-width:360px;aspect-ratio:9/16;
-      border:1px solid #bbb;border-radius:16px;
-      background:#f7f7f7;position:relative;overflow:hidden
-    }
-
-    /* AI */
-    #aiLog{height:300px;overflow:auto;border:1px solid #ddd;border-radius:12px;padding:10px;white-space:pre-wrap}
-    .msg{margin:10px 0}
-    .role{font-weight:900;font-size:12px;opacity:.65}
-    .text{margin-top:4px;font-size:13px;line-height:1.35;white-space:pre-wrap}
-    #aiInput{width:100%;min-height:84px;border:1px solid #ddd;border-radius:12px;padding:10px;font-size:14px;box-sizing:border-box;margin-top:10px}
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip{padding:7px 10px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:12px}
-  </style>
+<!-- Monaco -->
+<script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 </head>
 
 <body>
-  <h2>Dojo Ultimate（LocalScript練習：全部入り）</h2>
-  <div class="hint">
-    ✅ 予測変換：<b>1文字</b>（例 <code>l</code>）→ A〜Zテンプレ ／ <b>2文字以上</b>（例 <code>service</code>, <code>input</code>, <code>ui</code>）→ LocalScript辞書<br>
-    ✅ 候補タップ：コード挿入＋説明更新 ／ AI：提案→「おすすめを挿入」 ／ Run：Dojo用テンプレは動く（Studio用はRunするとエラーでOK）
-  </div>
+<header>LocalScript Dojo（完成版）</header>
 
-  <div class="grid">
-    <!-- LEFT -->
-    <div>
-      <div class="row">
-        <button id="run">Run</button>
-        <button id="reset">Reset</button>
-        <button id="clearOut">Clear Output</button>
-      </div>
+<div id="editor"></div>
 
-      <div id="out"></div>
+<div id="panel">
+  <button id="insertBtn">おすすめを挿入</button>
+  <div id="log">ready.</div>
+</div>
 
-      <div id="editorWrap">
-        <div class="hint"><b>Lua Editor（ここに書く）</b>：Monacoが無理でもtextareaで必ず使える</div>
-
-        <!-- Fallback (always exists) -->
-        <textarea id="editorFallback">-- ここにLuaを書く（この箱は必ず出る）
--- ためしに「l」と打って候補を出してみて
-
-print("Ready! Tap the stage")
-
-Input.onTap(function(x, y)
-  print("Tap:", x, y)
-end)
-</textarea>
-
-        <!-- Monaco (optional) -->
-        <div id="editor"></div>
-
-        <!-- Suggest -->
-        <div id="suggest"></div>
-      </div>
-
-      <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
-      <div id="stage"></div>
-    </div>
-
-    <!-- RIGHT -->
-    <div>
-      <div class="panel">
-        <div class="panelTitle">
-          <div>説明</div>
-          <div class="pill">doc</div>
-        </div>
-        <div id="docTitle">（候補をタップするとここが変わる）</div>
-        <div id="docBody">（ここに説明）</div>
-      </div>
-
-      <div style="height:12px"></div>
-
-      <div class="panel">
-        <div class="panelTitle">
-          <div>LocalScript専用AI（学習コーチ）</div>
-          <div class="pill">offline</div>
-        </div>
-        <div class="hint" style="margin-top:8px">
-          例：<code>カウンター</code> / <code>ON/OFF</code> / <code>タップ座標</code> / <code>studio で書き方</code>
-        </div>
-
-        <div id="aiLog"></div>
-
-        <div class="chips">
-          <button class="chip" data-q="カウンターを作りたい">カウンター</button>
-          <button class="chip" data-q="ON/OFF切り替えたい">ON/OFF</button>
-          <button class="chip" data-q="タップ座標を表示したい">タップ座標</button>
-          <button class="chip" data-q="studio で LocalScript例がほしい（タップ座標）">Studio例</button>
-        </div>
-
-        <textarea id="aiInput" placeholder="やりたいことを書いて送信（例：ボタンでON/OFF切り替えたい）"></textarea>
-
-        <div class="row">
-          <button id="aiSend">送信</button>
-          <button id="aiInsert">おすすめを挿入</button>
-          <button id="aiClear">AIログ消し</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lua VM -->
-  <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
-  <!-- Monaco loader -->
-  <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
-
-  <script>
-  // ===== エラーを画面に出す（iPhone用）=====
-window.onerror = function (msg, src, line, col, err) {
-  const s = `JS ERROR: ${msg}\n${src || ""}:${line || ""}:${col || ""}`;
-  try {
-    const out = document.getElementById("out");
-    if (out) out.textContent = s;
-  } catch(e){}
+<script>
+// ======================
+// エラー可視化（保険）
+// ======================
+window.onerror = function(msg, src, line, col){
+  document.getElementById("log").textContent =
+    "JS ERROR:\n" + msg + "\n" + line + ":" + col;
 };
-    // =========================
-    // Core UI refs
-    // =========================
-    const out = document.getElementById("out");
-    const stage = document.getElementById("stage");
-    const runBtn = document.getElementById("run");
-    const resetBtn = document.getElementById("reset");
-    const clearOutBtn = document.getElementById("clearOut");
 
-    const editorDiv = document.getElementById("editor");
-    const editorFallback = document.getElementById("editorFallback");
-    const suggestBox = document.getElementById("suggest");
-
-    const docTitle = document.getElementById("docTitle");
-    const docBody  = document.getElementById("docBody");
-
-    // AI
-    const aiLog = document.getElementById("aiLog");
-    const aiInput = document.getElementById("aiInput");
-    const aiSend = document.getElementById("aiSend");
-    const aiInsert = document.getElementById("aiInsert");
-    const aiClear = document.getElementById("aiClear");
-
-    let running = false;
-    let tapHandlers = [];
-    let editor = null; // Monaco instance (optional)
-
-    // expose (AI can use)
-    window.__dojoMonacoEditor = null;
-    window.__dojoMonacoModel  = null;
-
-    function logLine(s){
-      out.textContent += String(s) + "\n";
-      out.scrollTop = out.scrollHeight;
-    }
-
-    // iOS+Fengari safety: Lua側で \n を作らず、JS側で改行
-    window.appendOutput = (s)=> { logLine(s); };
-    window.__inputOnTap = (fn)=> { tapHandlers.push(fn); };
-
-    stage.onclick = (e)=>{
-      if(!running) return;
-      const r = stage.getBoundingClientRect();
-      const x = Math.round(e.clientX - r.left);
-      const y = Math.round(e.clientY - r.top);
-      for (const fn of tapHandlers) {
-        try { fn(x,y); } catch(err) { logLine("JS handler error: " + err); }
-      }
-    };
-
-    function wrap(userCode){
-      return `
-Input = {}
-function Input.onTap(fn) js.global:__inputOnTap(fn) end
-
-print = function(...)
-  local t = {}
-  for i=1,select('#', ...) do
-    t[#t+1] = tostring(select(i, ...))
-  end
-  js.global:appendOutput(table.concat(t, " "))
-end
-
-${userCode}
-`;
-    }
-
-    function getEditorText(){
-      if (editor && typeof editor.getValue === "function") return editor.getValue();
-      return editorFallback.value || "";
-    }
-
-    // Insert/replace AND move cursor to "next line" (9->10) in Monaco
-    function setEditorTextSmart(newText){
-      // capture current cursor line (Monaco)
-      let oldLine = 1;
-      if (editor && typeof editor.getPosition === "function") {
-        const p = editor.getPosition();
-        if (p && p.lineNumber) oldLine = p.lineNumber;
-      }
-
-      // always update textarea too (safety)
-      editorFallback.value = newText;
-
-      // update Monaco if available
-      if (editor && window.__dojoMonacoModel && typeof window.__dojoMonacoModel.setValue === "function") {
-        window.__dojoMonacoModel.setValue(newText);
-        editor.focus();
-
-        // move to next line of old cursor (9->10), clamp
-        const model = window.__dojoMonacoModel;
-        const nextLine = Math.min(oldLine + 1, model.getLineCount());
-        editor.setPosition({ lineNumber: nextLine, column: 1 });
-        editor.revealLineInCenter(nextLine);
-      }
-    }
-
-    function showDoc(item){
-      docTitle.textContent = (item.key || "") + " — " + (item.desc || "");
-      const tags = (item.tags && item.tags.length) ? ("【タグ】" + item.tags.join(" / ") + "\n\n") : "";
-      docBody.textContent = tags + (item.doc || "（説明なし）");
-    }
-
-    runBtn.onclick = ()=>{
-      out.textContent = "";
-      tapHandlers = [];
-      running = true;
-
-      if (!window.fengari || !fengari.load) {
-        logLine("Lua engineが読み込めてない（通信/ブロックが原因かも）");
-        return;
-      }
-      try {
-        const userLua = getEditorText();
-        fengari.load(wrap(userLua))();
-      } catch (e) {
-        logLine("Lua Error: " + (e && e.message ? e.message : e));
-      }
-    };
-
-    resetBtn.onclick = ()=>{
-      running = false;
-      tapHandlers = [];
-      out.textContent = "";
-    };
-
-    clearOutBtn.onclick = ()=>{ out.textContent = ""; };
-
-    // =========================
-    // A〜Z Templates (Dojo用)
-    // =========================
-    const LETTERS = "abcdefghijklmnopqrstuvwxyz".split("");
-
-    function makeTemplates(L){
-      return [
-        {
-          key: `${L}.starter`,
-          tags: ["Dojo","基本","event"],
-          desc: "最小テンプレ（print + onTap）",
-          doc:
-`Dojoで動くテンプレ。
-- printでログ出し
-- Input.onTap( function(x,y) ... end ) のイベント
-
-いじる場所：
-- printの文字
-- onTapの中身`,
-          code:
-`print("${L}: Ready!")
-
-Input.onTap(function(x, y)
-  print("${L}: Tap", x, y)
-end)`
-        },
-        {
-          key: `${L}.counter`,
-          tags: ["Dojo","state","変数"],
-          desc: "カウンター（状態管理）",
-          doc:
-`状態（count）を持って、タップで増える。
-LocalScriptの基本「状態＋イベント」の練習。`,
-          code:
-`local count = 0
-print("${L}: counter ready")
-
-Input.onTap(function()
-  count = count + 1
-  print("${L}: count", count)
-end)`
-        },
-        {
-          key: `${L}.toggle`,
-          tags: ["Dojo","state","bool"],
-          desc: "ON/OFFトグル（bool）",
-          doc:
-`定番：on = not on
-ON/OFFで表示を変える練習。`,
-          code:
-`local on = false
-print("${L}: toggle ready")
-
-Input.onTap(function()
-  on = not on
-  print("${L}: state", on and "ON" or "OFF")
-end)`
-        },
-        {
-          key: `${L}.tap`,
-          tags: ["Dojo","input"],
-          desc: "タップ座標だけ表示",
-          doc:
-`x,y座標を受け取って表示。`,
-          code:
-`Input.onTap(function(x, y)
-  print("${L}: Tap", x, y)
-end)`
-        }
-      ];
-    }
-
-    const TEMPLATE_DB = Object.fromEntries(LETTERS.map(ch => [ch, makeTemplates(ch)]));
-
-    // =========================
-    // LocalScript Dictionary (Studio用・辞書)
-    // ※ DojoでRunするとエラーになるのは仕様（gameがないため）
-    // =========================
-    const LS_DB = [
-  // =====================
-  // BASICS / SERVICES
-  // =====================
-  { key:"service.get", tags:["Studio","basic","Service"], desc:"Service取得（GetService）",
-    doc:"Serviceはこれで取る。LocalScriptの基本。",
+// ======================
+// LocalScript 辞書
+// ======================
+const LS_DB = [
+  {
+    key:"local.basic",
+    desc:"local変数の基本",
+    code:`local x = 10
+print(x)`
+  },
+  {
+    key:"service.get",
+    desc:"Service取得",
     code:`local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local CAS = game:GetService("ContextActionService")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")` },
-
-  { key:"service.waitChild", tags:["Studio","basic"], desc:"WaitForChildの定番",
-    doc:"存在するまで待つ。親や名前が間違ってると永久待ちになるので注意。",
-    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local remotes = ReplicatedStorage:WaitForChild("Remotes")
-local myRemote = remotes:WaitForChild("MyRemoteEvent")` },
-
-  // =====================
-  // PLAYER / CHARACTER
-  // =====================
-  { key:"player.local", tags:["Studio","Players","LocalPlayer"], desc:"LocalPlayer取得",
-    doc:"LocalScriptで自分のプレイヤー。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer` },
-
-  { key:"char.hook", tags:["Studio","Character","pattern"], desc:"CharacterAddedの安全テンプレ",
-    doc:"リスポーンでCharacterが変わる。hook関数でまとめるのが定番。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local function hook(char)
-  print("Character:", char.Name)
-end
-
-if player.Character then hook(player.Character) end
-player.CharacterAdded:Connect(hook)` },
-
-  { key:"char.humanoid", tags:["Studio","Character","Humanoid"], desc:"Humanoid取得",
-    doc:"Humanoidはキャラの基本。WaitForChildで取る。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local function hook(char)
-  local hum = char:WaitForChild("Humanoid")
-  print("WalkSpeed:", hum.WalkSpeed)
-end
-if player.Character then hook(player.Character) end
-player.CharacterAdded:Connect(hook)` },
-
-  { key:"char.rootpart", tags:["Studio","Character","RootPart"], desc:"HumanoidRootPart取得",
-    doc:"位置/向き/移動の基準。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local function hook(char)
-  local root = char:WaitForChild("HumanoidRootPart")
-  print("Pos:", root.Position)
-end
-if player.Character then hook(player.Character) end
-player.CharacterAdded:Connect(hook)` },
-
-  { key:"char.died", tags:["Studio","Character","Humanoid","event"], desc:"Humanoid.Diedイベント",
-    doc:"死んだ瞬間に呼ばれる。リスポーンで再接続が必要。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local function hook(char)
-  local hum = char:WaitForChild("Humanoid")
-  hum.Died:Connect(function()
-    print("Died!")
-  end)
-end
-if player.Character then hook(player.Character) end
-player.CharacterAdded:Connect(hook)` },
-
-  { key:"char.healthChanged", tags:["Studio","Character","Humanoid","event"], desc:"HealthChangedイベント",
-    doc:"体力が変わるたび呼ばれる。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local function hook(char)
-  local hum = char:WaitForChild("Humanoid")
-  hum.HealthChanged:Connect(function(hp)
-    print("HP:", hp)
-  end)
-end
-if player.Character then hook(player.Character) end
-player.CharacterAdded:Connect(hook)` },
-
-  // =====================
-  // INPUT (UIS / CAS)
-  // =====================
-  { key:"input.tap", tags:["Studio","Input","UIS","Touch","Mouse"], desc:"タップ/クリック（InputBegan）",
-    doc:"モバイル/PC両対応。gameProcessedはUI操作でtrueになりやすい。",
-    code:`local UIS = game:GetService("UserInputService")
-
-UIS.InputBegan:Connect(function(input, gameProcessed)
-  if gameProcessed then return end
-  if input.UserInputType == Enum.UserInputType.Touch
-    or input.UserInputType == Enum.UserInputType.MouseButton1 then
-    print("Tap/Click")
-  end
-end)` },
-
-  { key:"input.key", tags:["Studio","Input","Keyboard"], desc:"キー入力（KeyCode）",
-    doc:"PC向け。モバイルはCASでボタン出すのが楽。",
-    code:`local UIS = game:GetService("UserInputService")
-
-UIS.InputBegan:Connect(function(input, gameProcessed)
-  if gameProcessed then return end
-  if input.KeyCode == Enum.KeyCode.E then
-    print("Pressed E")
-  end
-end)` },
-
-  { key:"input.mousePos", tags:["Studio","Input","Mouse"], desc:"マウス/タッチ位置（GetMouseLocation）",
-    doc:"UI座標っぽいスクリーン座標。",
-    code:`local UIS = game:GetService("UserInputService")
-local pos = UIS:GetMouseLocation()
-print(pos.X, pos.Y)` },
-
-  { key:"input.changed", tags:["Studio","Input","UIS"], desc:"InputChanged（ドラッグ等）",
-    doc:"指を動かしてる間のイベント。タッチドラッグUIにも使える。",
-    code:`local UIS = game:GetService("UserInputService")
-
-UIS.InputChanged:Connect(function(input, gameProcessed)
-  if gameProcessed then return end
-  if input.UserInputType == Enum.UserInputType.Touch
-    or input.UserInputType == Enum.UserInputType.MouseMovement then
-    -- input.Position が使える
-  end
-end)` },
-
-  { key:"cas.bind", tags:["Studio","Input","CAS","Mobile"], desc:"CASでアクション登録（ボタンも出る）",
-    doc:"モバイルで画面ボタンを出せる最強枠。Begin/Endで押しっぱ対応も可能。",
-    code:`local CAS = game:GetService("ContextActionService")
-
-local function onAction(name, state, input)
-  if state == Enum.UserInputState.Begin then
-    print("Begin:", name)
-  elseif state == Enum.UserInputState.End then
-    print("End:", name)
-  end
-  return Enum.ContextActionResult.Sink
-end
-
-CAS:BindAction("DojoAction", onAction, true, Enum.KeyCode.E)
-CAS:SetTitle("DojoAction", "ACTION")
-CAS:SetPosition("DojoAction", UDim2.new(0.8, 0, 0.8, 0))` },
-
-  { key:"cas.unbind", tags:["Studio","Input","CAS"], desc:"CAS解除（UnbindAction）",
-    doc:"いらなくなったら解除。画面ボタンも消える。",
-    code:`local CAS = game:GetService("ContextActionService")
-CAS:UnbindAction("DojoAction")` },
-
-  // =====================
-  // UI (ScreenGui / Button / Layout)
-  // =====================
-  { key:"ui.screenGui", tags:["Studio","UI","ScreenGui"], desc:"ScreenGui作成（PlayerGui）",
-    doc:"LocalScriptでUIを作る土台。",
+local player = Players.LocalPlayer`
+  },
+  {
+    key:"ui.screenGui",
+    desc:"ScreenGui作成",
     code:`local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "DojoGUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")` },
+gui.Parent = player:WaitForChild("PlayerGui")`
+  },
+  {
+    key:"input.tap",
+    desc:"タップ検知",
+    code:`local UIS = game:GetService("UserInputService")
 
-  { key:"ui.frame", tags:["Studio","UI","Frame"], desc:"Frame作成（パネル）",
-    doc:"UIの箱。背景や角丸を作って“アプリ感”出せる。",
-    code:`local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 220)
-frame.Position = UDim2.new(0, 20, 0, 20)
-frame.BackgroundTransparency = 0.05
-frame.Parent = gui` },
-
-  { key:"ui.corner", tags:["Studio","UI","UICorner"], desc:"角丸（UICorner）",
-    doc:"Frame/Buttonに付けると角丸になる。",
-    code:`local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 14)
-corner.Parent = frame` },
-
-  { key:"ui.stroke", tags:["Studio","UI","UIStroke"], desc:"枠線（UIStroke）",
-    doc:"アウトライン。見やすくなる。",
-    code:`local stroke = Instance.new("UIStroke")
-stroke.Thickness = 2
-stroke.Parent = frame` },
-
-  { key:"ui.label", tags:["Studio","UI","TextLabel"], desc:"TextLabel（表示）",
-    doc:"テキスト表示。",
-    code:`local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, -20, 0, 40)
-label.Position = UDim2.new(0, 10, 0, 10)
-label.BackgroundTransparency = 1
-label.Text = "Hello"
-label.TextScaled = true
-label.Parent = frame` },
-
-  { key:"ui.button", tags:["Studio","UI","TextButton"], desc:"TextButton（クリック）",
-    doc:"ボタン基本。押したら何するかをConnectで書く。",
-    code:`local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, -20, 0, 50)
-btn.Position = UDim2.new(0, 10, 0, 60)
-btn.Text = "CLICK"
-btn.Parent = frame
-
-btn.MouseButton1Click:Connect(function()
-  print("clicked")
-end)` },
-
-  { key:"ui.toggle", tags:["Studio","UI","pattern","ON/OFF"], desc:"ボタンでON/OFFトグル",
-    doc:"on = not on の定番。UIに繋げる。",
-    code:`local on = false
-local function refresh()
-  btn.Text = on and "ON" or "OFF"
-end
-refresh()
-
-btn.MouseButton1Click:Connect(function()
-  on = not on
-  refresh()
-end)` },
-
-  { key:"ui.listLayout", tags:["Studio","UI","UIListLayout"], desc:"縦並び（UIListLayout）",
-    doc:"勝手に縦に並ぶ。Spacingで間隔。",
-    code:`local list = Instance.new("UIListLayout")
-list.Padding = UDim.new(0, 10)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.Parent = frame` },
-
-  { key:"ui.padding", tags:["Studio","UI","UIPadding"], desc:"余白（UIPadding）",
-    doc:"Frameの内側余白。",
-    code:`local pad = Instance.new("UIPadding")
-pad.PaddingLeft = UDim.new(0, 12)
-pad.PaddingRight = UDim.new(0, 12)
-pad.PaddingTop = UDim.new(0, 12)
-pad.PaddingBottom = UDim.new(0, 12)
-pad.Parent = frame` },
-
-  // =====================
-  // RUNSERVICE / LOOPS
-  // =====================
-  { key:"loop.render", tags:["Studio","RunService","RenderStepped"], desc:"毎フレーム（RenderStepped）",
-    doc:"見た目やカメラ向き。重い処理NG。",
-    code:`local RunService = game:GetService("RunService")
-RunService.RenderStepped:Connect(function(dt)
-  -- dt: 秒
-end)` },
-
-  { key:"loop.heartbeat", tags:["Studio","RunService","Heartbeat"], desc:"毎フレーム（Heartbeat）",
-    doc:"物理の後。ゲーム処理寄り。",
-    code:`local RunService = game:GetService("RunService")
-RunService.Heartbeat:Connect(function(dt)
-end)` },
-
-  { key:"loop.stepped", tags:["Studio","RunService","Stepped"], desc:"毎フレーム（Stepped）",
-    doc:"古めだけど使うこともある。",
-    code:`local RunService = game:GetService("RunService")
-RunService.Stepped:Connect(function(time, dt)
-end)` },
-
-  // =====================
-  // TWEEN
-  // =====================
-  { key:"tween.create", tags:["Studio","TweenService","Tween"], desc:"Tween作成（Create）",
-    doc:"UI/パーツを滑らかに動かす。",
-    code:`local TweenService = game:GetService("TweenService")
-local info = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local tween = TweenService:Create(frame, info, {Position = UDim2.new(0, 20, 0, 60)})
-tween:Play()` },
-
-  { key:"tween.cancel", tags:["Studio","TweenService"], desc:"Tweenキャンセル（Cancel）",
-    doc:"途中で止める。",
-    code:`tween:Cancel()` },
-
-  // =====================
-  // CAMERA
-  // =====================
-  { key:"camera.get", tags:["Studio","Camera"], desc:"CurrentCamera取得",
-    doc:"LocalScriptでカメラ操作。",
-    code:`local cam = workspace.CurrentCamera
-print(cam.FieldOfView)` },
-
-  { key:"camera.fov", tags:["Studio","Camera"], desc:"FOV変更",
-    doc:"視野角を変える。",
-    code:`local cam = workspace.CurrentCamera
-cam.FieldOfView = 80` },
-
-  { key:"camera.subject", tags:["Studio","Camera"], desc:"CameraSubject変更",
-    doc:"カメラの追従対象を変える。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local cam = workspace.CurrentCamera
-cam.CameraSubject = player.Character and player.Character:WaitForChild("Humanoid")` },
-
-  // =====================
-  // SOUND
-  // =====================
-  { key:"sound.play", tags:["Studio","Sound"], desc:"Soundを鳴らす（Play）",
-    doc:"SoundIdは rbxassetid:// 形式。音はWorkspace/Gui等に置ける。",
-    code:`local s = Instance.new("Sound")
-s.SoundId = "rbxassetid://0"
-s.Volume = 0.5
-s.Parent = workspace
-s:Play()` },
-
-  // =====================
-  // ANIMATION (基本だけ)
-  // =====================
-  { key:"anim.load", tags:["Studio","Animation","Humanoid"], desc:"アニメ再生（LoadAnimation）",
-    doc:"Humanoid + Animatorを使う。アニメIDは assetid。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local function hook(char)
-  local hum = char:WaitForChild("Humanoid")
-  local animator = hum:WaitForChild("Animator")
-
-  local anim = Instance.new("Animation")
-  anim.AnimationId = "rbxassetid://0"
-
-  local track = animator:LoadAnimation(anim)
-  track:Play()
-end
-
-if player.Character then hook(player.Character) end
-player.CharacterAdded:Connect(hook)` },
-
-  // =====================
-  // TOOL
-  // =====================
-  { key:"tool.detect", tags:["Studio","Tool","Backpack"], desc:"Tool装備検知（ChildAdded）",
-    doc:"Backpack/Characterを監視して装備を判定。",
-    code:`local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-player.Backpack.ChildAdded:Connect(function(child)
-  if child:IsA("Tool") then
-    print("Got tool:", child.Name)
+UIS.InputBegan:Connect(function(input,gp)
+  if gp then return end
+  if input.UserInputType == Enum.UserInputType.Touch then
+    print("tap")
   end
-end)` },
-
-  // =====================
-  // PART / TOUCH (クライアント側判定)
-  // =====================
-  { key:"part.touched", tags:["Studio","Part","Touched"], desc:"Part.Touched（注意あり）",
-    doc:"Touchedはクライアントでズレることがある。重要判定はサーバー推奨。",
-    code:`local part = workspace:WaitForChild("MyPart")
-
-part.Touched:Connect(function(hit)
-  print("Touched by:", hit.Name)
-end)` },
-
-  // =====================
-  // REMOTES (正規)
-  // =====================
-  { key:"remote.fire", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent:FireServer",
-    doc:"サーバーに通知する正規手段。",
-    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Remote = ReplicatedStorage:WaitForChild("MyRemoteEvent")
-Remote:FireServer("hello", 123)` },
-
-  { key:"remote.onClient", tags:["Studio","RemoteEvent","Client"], desc:"RemoteEvent.OnClientEvent",
-    doc:"サーバー→クライアント通知を受け取る。",
-    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Remote = ReplicatedStorage:WaitForChild("MyRemoteEvent")
-
-Remote.OnClientEvent:Connect(function(msg, n)
-  print("From server:", msg, n)
-end)` },
-
-  { key:"remote.invoke", tags:["Studio","RemoteFunction","Client"], desc:"RemoteFunction:InvokeServer",
-    doc:"サーバーに問い合わせ（返り値を受け取る）。重い処理は注意。",
-    code:`local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RF = ReplicatedStorage:WaitForChild("MyRemoteFunction")
-
-local result = RF:InvokeServer("ping")
-print("result:", result)` },
-
-  // =====================
-  // DATASTORE (注意：サーバーでやる)
-  // =====================
-  { key:"note.datastore", tags:["Note","DataStore"], desc:"注意：DataStoreはサーバー専用",
-    doc:"DataStoreはLocalScriptでは基本扱わない。Server Scriptでやる。",
-    code:`-- DataStoreはサーバー（Script）でやる！
--- LocalScriptではRemoteでサーバーに依頼するのが基本。` },
+end)`
+  }
 ];
 
-    // =========================
-    // Suggest UI helpers
-    // =========================
-    function currentToken(text){
-      const m = (text || "").match(/([A-Za-z][A-Za-z0-9\._]*)$/);
-      return m ? m[1].toLowerCase() : "";
+// ======================
+// Monaco 起動
+// ======================
+require.config({ paths:{ vs:"https://unpkg.com/monaco-editor@0.45.0/min/vs" }});
+require(["vs/editor/editor.main"], function(){
+
+  // Lua登録
+  monaco.languages.register({ id:"lua" });
+
+  const editor = monaco.editor.create(
+    document.getElementById("editor"),
+    {
+      value:`-- ここにLuaを書く
+local`,
+      language:"lua",
+      theme:"vs-dark",
+      quickSuggestions:true,
+      tabCompletion:"on"
     }
+  );
 
-    function hideSuggest(){
-      suggestBox.style.display = "none";
-      suggestBox.innerHTML = "";
-    }
-
-    function showSuggest(list){
-      suggestBox.innerHTML = "";
-      list.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "sItem";
-        const tagLine = item.tags && item.tags.length ? `<div class="sTag">${item.tags.join(" / ")}</div>` : "";
-        div.innerHTML =
-          `<div class="sKey">${item.key}</div>`+
-          `<div class="sDesc">${item.desc || ""}</div>`+
-          tagLine;
-
-        div.onclick = () => {
-          showDoc(item);
-          setEditorTextSmart(item.code || "");
-          hideSuggest();
-        };
-        suggestBox.appendChild(div);
-      });
-      suggestBox.style.display = "block";
-    }
-
-    function handleSuggest(){
-      const text = getEditorText();
-      const tok = currentToken(text);
-      if (!tok) { hideSuggest(); return; }
-
-      const q = tok.toLowerCase();
-
-      // 1) LocalScript辞書：2文字以上で検索
-      if (q.length >= 2) {
-        const listLS = LS_DB.filter(it => {
-          const key  = String(it.key  || "").toLowerCase();
-          const desc = String(it.desc || "").toLowerCase();
-          const doc  = String(it.doc  || "").toLowerCase();
-          const tags = (it.tags || []).map(t => String(t).toLowerCase());
-          return key.includes(q) || desc.includes(q) || doc.includes(q) || tags.some(t => t.includes(q));
-        }).slice(0, 12);
-
-        if (listLS.length) { showSuggest(listLS); return; }
-      }
-
-      // 2) A〜Zテンプレ：1文字でも出る
-      const first = q[0];
-      if (!TEMPLATE_DB[first]) { hideSuggest(); return; }
-
-      let list = TEMPLATE_DB[first];
-      if (q.length > 1) list = list.filter(x => x.key.startsWith(q));
-      list = list.slice(0, 12);
-
-      if (!list.length) { hideSuggest(); return; }
-      showSuggest(list);
-    }
-
-    // hook (textarea)
-    editorFallback.addEventListener("input", handleSuggest);
-    editorFallback.addEventListener("focus", handleSuggest);
-
-    // initial doc
-    showDoc(TEMPLATE_DB["l"][0]);
-
-    // =========================
-    // Monaco init (optional)
-    // =========================
-    (function initMonaco(){
-      if (!window.require) {
-        logLine("Monaco未使用（textareaでOK）。");
-        return;
-      }
-      try {
-        require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
-        require(["vs/editor/editor.main"], function () {
-          const initial = editorFallback.value || "";
-          editor = monaco.editor.create(editorDiv, {
-            value: initial,
-            language: "lua",
-            theme: "vs",
-            automaticLayout: true,
-            minimap: { enabled: false },
-            fontSize: 14,
-            wordWrap: "on",
-            scrollBeyondLastLine: false
-            quickSuggestions: true,
-　　　　　　　　suggestOnTriggerCharacters: true,
-　　　　　　　　tabCompletion: "on",
-            snippetSuggestions: "top",
-          });
-          // ===== B(完全版): Lua言語を登録 + LS_DBを補完候補にする =====
-
-// 1) Monacoに lua 言語IDを登録（これが無いと補完が出ないことがある）
-try { monaco.languages.register({ id: "lua" }); } catch(e) {}
-
-// 2) 超ミニの色付け（なくても動くけど、入れた方が気持ちいい）
-try {
-  monaco.languages.setMonarchTokensProvider("lua", {
-    tokenizer: {
-      root: [
-        [/\b(local|function|end|if|then|else|elseif|for|while|do|return|nil|true|false)\b/, "keyword"],
-        [/[a-zA-Z_]\w*/, "identifier"],
-        [/".*?"/, "string"],
-        [/--.*$/, "comment"],
-        [/\d+/, "number"],
-      ]
+  // 補完（LocalScript辞書）
+  monaco.languages.registerCompletionItemProvider("lua",{
+    provideCompletionItems(){
+      return {
+        suggestions: LS_DB.map(it=>({
+          label: it.key,
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: it.code,
+          documentation: it.desc,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+        }))
+      };
     }
   });
-} catch(e) {}
 
-// 3) LS_DBを補完として出す（入力したら出るようトリガー強め）
-monaco.languages.registerCompletionItemProvider("lua", {
-  triggerCharacters: [".", "_"],
-  provideCompletionItems: () => {
-    const suggestions = (typeof LS_DB !== "undefined" ? LS_DB : []).map(it => ({
-      label: it.key,
-      kind: monaco.languages.CompletionItemKind.Snippet,
-      insertText: it.code || "",
-      documentation: (it.desc || "") + "\n\n" + (it.doc || ""),
-      insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-    }));
-    return { suggestions };
-  }
+  // 挿入ボタン（全文置換）
+  document.getElementById("insertBtn").onclick = ()=>{
+    const m = editor.getModel();
+    m.setValue(LS_DB[0].code);
+    editor.setPosition({ lineNumber:2, column:1 });
+    editor.focus();
+    document.getElementById("log").textContent =
+      "挿入完了：" + LS_DB[0].key;
+  };
+
+  document.getElementById("log").textContent = "Monaco ready.";
 });
-
-// 4) iPhoneだと自動で開きにくいので、フォーカス時に1回出す
-setTimeout(() => {
-  try { editor.trigger("dojo", "editor.action.triggerSuggest", {}); } catch(e) {}
-}, 200);
-
-          // expose real monaco
-          window.__dojoMonacoEditor = editor;
-          window.__dojoMonacoModel = editor.getModel();
-
-          // show monaco, hide fallback
-          editorFallback.style.display = "none";
-          editorDiv.style.display = "block";
-
-          editor.onDidChangeModelContent(handleSuggest);
-          editor.onDidFocusEditorText(handleSuggest);
-
-          logLine("Monaco Editor Ready（全部入り）");
-          handleSuggest();
-        });
-      } catch (e) {
-        logLine("Monaco初期化に失敗（textareaで続行）: " + (e.message || e));
-      }
-    })();
-
-    // =========================
-    // AI (offline)
-    // =========================
-    function addMsg(role, text){
-      const wrap = document.createElement("div");
-      wrap.className = "msg";
-      const r = document.createElement("div");
-      r.className = "role";
-      r.textContent = role;
-      const t = document.createElement("div");
-      t.className = "text";
-      t.textContent = text;
-      wrap.appendChild(r); wrap.appendChild(t);
-      aiLog.appendChild(wrap);
-      aiLog.scrollTop = aiLog.scrollHeight;
-    }
-
-    function norm(s){ return (s||"").toLowerCase().trim(); }
-    function isUnsafe(s){
-      const bad = [
-        "exploit"
-      ];
-      const x = norm(s);
-      return bad.some(k => x.includes(k));
-    }
-
-    // AI picks from Dojo templates by default
-    let aiBest = TEMPLATE_DB["l"][0];
-
-    function scoreDojo(prompt, item){
-      const p = norm(prompt);
-      let s = 0;
-      if (p.includes("カウンター") || p.includes("counter") || p.includes("回数")) if (item.key.endsWith(".counter")) s += 8;
-      if (p.includes("on/off") || p.includes("オンオフ") || p.includes("トグル") || p.includes("toggle") || p.includes("切り替え")) if (item.key.endsWith(".toggle")) s += 8;
-      if (p.includes("タップ") || p.includes("tap") || p.includes("座標") || p.includes("クリック")) if (item.key.endsWith(".tap")) s += 8;
-      if (p.includes("最初") || p.includes("基本") || p.includes("スターター") || p.includes("はじめ")) if (item.key.endsWith(".starter")) s += 6;
-      return s;
-    }
-
-    function pickDojo(prompt){
-      const all = LETTERS.flatMap(ch => TEMPLATE_DB[ch]);
-      const ranked = all.map(it => ({it, s: scoreDojo(prompt, it)})).sort((a,b)=>b.s-a.s);
-      const top = ranked[0].s > 0 ? ranked[0].it : TEMPLATE_DB["l"][0];
-      aiBest = top;
-      return ranked.filter(x=>x.s>0).slice(0,4).map(x=>x.it);
-    }
-
-    function studioExample(prompt){
-      const p = norm(prompt);
-      const wantsTap = p.includes("タップ") || p.includes("tap") || p.includes("クリック");
-      const wantsToggle = p.includes("トグル") || p.includes("toggle") || p.includes("on/off") || p.includes("切り替え");
-      const wantsCounter = p.includes("カウンター") || p.includes("counter") || p.includes("回数");
-
-      let code =
-`-- Roblox Studio用 LocalScript
--- 置き場所：StarterPlayer > StarterPlayerScripts
-
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-
-local player = Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-gui.Name = "DojoGUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0, 300, 0, 50)
-label.Position = UDim2.new(0, 20, 0, 20)
-label.Text = "Hello LocalScript"
-label.Parent = gui
-`;
-
-      if (wantsToggle){
-        code +=
-`
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 300, 0, 50)
-button.Position = UDim2.new(0, 20, 0, 80)
-button.Text = "TOGGLE"
-button.Parent = gui
-
-local on = false
-local function refresh()
-  label.Text = "STATE: " .. (on and "ON" or "OFF")
-end
-refresh()
-
-button.MouseButton1Click:Connect(function()
-  on = not on
-  refresh()
-end)
-`;
-      }
-
-      if (wantsCounter){
-        code +=
-`
-local count = 0
-local inc = Instance.new("TextButton")
-inc.Size = UDim2.new(0, 300, 0, 50)
-inc.Position = UDim2.new(0, 20, 0, 140)
-inc.Text = "+1"
-inc.Parent = gui
-
-inc.MouseButton1Click:Connect(function()
-  count += 1
-  label.Text = "count = " .. count
-end)
-`;
-      }
-
-      if (wantsTap){
-        code +=
-`
-UIS.InputBegan:Connect(function(input, gameProcessed)
-  if gameProcessed then return end
-  if input.UserInputType == Enum.UserInputType.MouseButton1
-     or input.UserInputType == Enum.UserInputType.Touch then
-    local pos = UIS:GetMouseLocation()
-    label.Text = ("Tap: %d, %d"):format(pos.X, pos.Y)
-  end
-end)
-`;
-      }
-
-      code +=
-`
--- メモ：
--- LocalScriptは「入力」「GUI」「カメラ」など “自分だけの体験” が得意。
--- 共有したい処理はサーバー側（Script）＋RemoteEventで。
-`;
-      return code;
-    }
-
-    function aiHandle(text){
-      if (isUnsafe(text)) {
-        addMsg("AI",
-`それは不正利用（チート/回避/エグゼキュータ等）につながる可能性が高いから手伝えない。
-でも、自作ゲームの学習・開発（UI/入力/状態管理/Studioの正規API）はOK。
-
-例：
-- ボタンでON/OFF切り替えたい
-- タップ座標を表示したい
-- カウンターを作りたい`);
-        aiBest = TEMPLATE_DB["l"][0];
-        return;
-      }
-
-      const p = norm(text);
-
-      if (p.includes("studio")) {
-        addMsg("AI", "【Roblox Studio用 LocalScript例】\n" + studioExample(text) +
-          "\n\n※ これはStudio用。DojoのRunでは動かない（gameが無いから）");
-        // Studio例は挿入対象にしない（混乱防止）
-        aiBest = TEMPLATE_DB["l"][0];
-        showDoc(aiBest);
-        return;
-      }
-
-      const picks = pickDojo(text);
-      const lines = picks.map((t,i)=>`${i+1}. ${t.key} — ${t.desc}`).join("\n");
-      addMsg("AI", `おすすめ候補（DojoでRunできる）：\n${lines}\n\nいちばん：${aiBest.key}\n「おすすめを挿入」で入れられる`);
-      showDoc(aiBest);
-    }
-
-    aiSend.onclick = ()=>{
-      const text = aiInput.value.trim();
-      if(!text) return;
-      addMsg("You", text);
-      aiInput.value = "";
-      aiHandle(text);
-    };
-
-    aiInsert.onclick = ()=>{
-      if (!aiBest || !aiBest.code) {
-        addMsg("AI","先に送信しておすすめを出してね。");
-        return;
-      }
-      setEditorTextSmart(aiBest.code);
-      showDoc(aiBest);
-      addMsg("AI", `挿入した：${aiBest.key}（カーソルは次の行へ）`);
-      hideSuggest();
-    };
-
-    aiClear.onclick = ()=>{
-      aiLog.innerHTML = "";
-      addMsg("AI","AIログを消した。やりたいことを送って。例：『カウンター作りたい』");
-    };
-
-    document.querySelectorAll("[data-q]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        aiInput.value = btn.getAttribute("data-q");
-        aiSend.click();
-      });
-    });
-
-    addMsg("AI",
-`使い方：
-- エディタで「l」→テンプレ
-- エディタで「service」「input」「ui」→辞書
-- AIに文章→おすすめ→「おすすめを挿入」
-
-※ Studio用コードはDojoのRunでは動かない（gameが無い）ので、Studioへ貼る用。`);
-  </script>
+</script>
 </body>
 </html>
