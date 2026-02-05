@@ -640,9 +640,34 @@ end)` },
             fontSize: 14,
             wordWrap: "on",
             scrollBeyondLastLine: false
+            quickSuggestions: true,
+　　　　　　　　suggestOnTriggerCharacters: true,
+　　　　　　　　tabCompletion: "on",
+            snippetSuggestions: "top",
           });
-          // ===== B: Monacoの予測変換（LS_DBを補完候補にする）=====
+          // ===== B(完全版): Lua言語を登録 + LS_DBを補完候補にする =====
+
+// 1) Monacoに lua 言語IDを登録（これが無いと補完が出ないことがある）
+try { monaco.languages.register({ id: "lua" }); } catch(e) {}
+
+// 2) 超ミニの色付け（なくても動くけど、入れた方が気持ちいい）
+try {
+  monaco.languages.setMonarchTokensProvider("lua", {
+    tokenizer: {
+      root: [
+        [/\b(local|function|end|if|then|else|elseif|for|while|do|return|nil|true|false)\b/, "keyword"],
+        [/[a-zA-Z_]\w*/, "identifier"],
+        [/".*?"/, "string"],
+        [/--.*$/, "comment"],
+        [/\d+/, "number"],
+      ]
+    }
+  });
+} catch(e) {}
+
+// 3) LS_DBを補完として出す（入力したら出るようトリガー強め）
 monaco.languages.registerCompletionItemProvider("lua", {
+  triggerCharacters: [".", "_"],
   provideCompletionItems: () => {
     const suggestions = (typeof LS_DB !== "undefined" ? LS_DB : []).map(it => ({
       label: it.key,
@@ -654,6 +679,11 @@ monaco.languages.registerCompletionItemProvider("lua", {
     return { suggestions };
   }
 });
+
+// 4) iPhoneだと自動で開きにくいので、フォーカス時に1回出す
+setTimeout(() => {
+  try { editor.trigger("dojo", "editor.action.triggerSuggest", {}); } catch(e) {}
+}, 200);
 
           // expose real monaco
           window.__dojoMonacoEditor = editor;
