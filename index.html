@@ -448,9 +448,7 @@ function norm(s){ return (s||"").toLowerCase().trim(); }
 function isUnsafe(s){
   // 不正利用（回避/チート/エグゼ系）は拒否
   const bad = [
-    "exploit","executor","delta","synapse","krnl","bypass","anticheat","anti cheat",
-    "cheat","hack","aimbot","esp","remote spy","remotespy","bedwars",
-    "アンチチート","回避","チート","裏で動く","放置でコイン","キルオーラ","リーチ"
+ jsjs
   ];
   const x = norm(s);
   return bad.some(k => x.includes(k));
