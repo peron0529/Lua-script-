@@ -611,19 +611,38 @@ aiInsert.onclick = ()=>{
     return;
   }
 
-  // まずtextareaにも書く（保険）
+  // まず保険：textareaにも入れる（必ず存在する）
   const fb = document.getElementById("editorFallback");
   if (fb) fb.value = aiBest.code;
 
-  // Monacoがあるなら“本物”に直接入れる
   const ed = window.__dojoMonacoEditor;
-  if (ed && ed.getModel && ed.getModel()) {
-    ed.focus();
-    ed.getModel().setValue(aiBest.code);   // ← setValueより確実
-    aiWrite("AI", `Monacoに挿入した：${aiBest.key}（${aiBest.code.length} chars）`);
+  const model = window.__dojoMonacoModel;
+
+  // デバッグ表示（ここ重要）
+  aiWrite("AI", "DEBUG: ed=" + (!!ed) + " model=" + (!!model) + " codeLen=" + aiBest.code.length);
+
+  if (ed && model && typeof model.setValue === "function") {
+    try {
+      model.setValue(aiBest.code);    // ← 一番確実
+      ed.focus();
+
+      // “本当に入ったか”を長さで確認
+      const now = model.getValue().length;
+      aiWrite("AI", "DEBUG: after setValue len=" + now);
+
+      // 目視でも変化させる（カーソルを最後へ）
+      const lineCount = model.getLineCount();
+      const lastCol = model.getLineMaxColumn(lineCount);
+      ed.setPosition({ lineNumber: lineCount, column: lastCol });
+      ed.revealPositionInCenter({ lineNumber: lineCount, column: lastCol });
+
+      aiWrite("AI", `Monacoに挿入した：${aiBest.key}`);
+    } catch (e) {
+      aiWrite("AI", "挿入エラー: " + (e.message || e));
+    }
   } else {
+    aiWrite("AI", "Monaco未準備。textareaに入れてる（下の白い方を確認して）");
     if (fb) fb.focus();
-    aiWrite("AI", `textareaに挿入した：${aiBest.key}（Monaco未準備）`);
   }
 };
 
