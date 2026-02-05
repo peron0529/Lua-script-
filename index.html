@@ -622,9 +622,7 @@ set(not on)`
     function norm(s){ return (s||"").toLowerCase().trim(); }
     function isUnsafe(s){
       const bad = [
-        "exploit","executor","delta","synapse","krnl","bypass","anticheat","anti cheat",
-        "cheat","hack","aimbot","esp","remote spy","remotespy","bedwars",
-        "アンチチート","回避","チート","裏で動く","放置でコイン","キルオーラ","リーチ"
+        "exploit"
       ];
       const x = norm(s);
       return bad.some(k => x.includes(k));
