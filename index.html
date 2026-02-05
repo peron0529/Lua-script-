@@ -122,6 +122,37 @@ end)
   <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
   <div id="stage"></div>
 
+<hr style="margin:18px 0;border:none;border-top:1px solid #ddd">
+
+<div id="aiPanel" style="border:1px solid #ddd;border-radius:12px;background:#fff;padding:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <b>LocalScript専用AI（学習コーチ）</b>
+    <span style="font-size:12px;padding:3px 8px;border:1px solid #ddd;border-radius:999px;opacity:.75">offline</span>
+  </div>
+
+  <div style="opacity:.75;font-size:12px;line-height:1.35;margin-top:6px">
+    例：<code>カウンター</code> / <code>ON/OFF</code> / <code>タップ座標</code> / <code>Studioでの書き方</code>
+  </div>
+
+  <div id="aiLog" style="height:240px;overflow:auto;border:1px solid #ddd;border-radius:12px;padding:10px;margin-top:10px;white-space:pre-wrap"></div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button class="aiChip" data-q="カウンターを作りたい">カウンター</button>
+    <button class="aiChip" data-q="ON/OFF切り替えたい">ON/OFF</button>
+    <button class="aiChip" data-q="タップした座標を表示したい">タップ座標</button>
+    <button class="aiChip" data-q="Roblox Studioで動くLocalScript例がほしい">Studio例</button>
+  </div>
+
+  <textarea id="aiInput" style="width:100%;min-height:84px;border:1px solid #ddd;border-radius:12px;padding:10px;font-size:14px;box-sizing:border-box;margin-top:10px"
+    placeholder="やりたいことを書いて送信（例：ボタンでON/OFF切り替えたい）"></textarea>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+    <button id="aiSend">送信</button>
+    <button id="aiInsert">おすすめをエディタに挿入</button>
+    <button id="aiClear">AIログ消し</button>
+  </div>
+</div>
+
   <!-- Lua VM -->
   <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
   <!-- Monaco（読み込めたら使う。ダメでもtextareaがある） -->
@@ -592,35 +623,5 @@ aiWrite("AI",
 - "studio" を含めると Studio用LocalScript例を出す
 - 「おすすめをエディタに挿入」でワンタップ挿入`);
   </script>
-<hr style="margin:18px 0;border:none;border-top:1px solid #ddd">
-
-<div id="aiPanel" style="border:1px solid #ddd;border-radius:12px;background:#fff;padding:10px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-    <b>LocalScript専用AI（学習コーチ）</b>
-    <span style="font-size:12px;padding:3px 8px;border:1px solid #ddd;border-radius:999px;opacity:.75">offline</span>
-  </div>
-
-  <div style="opacity:.75;font-size:12px;line-height:1.35;margin-top:6px">
-    例：<code>カウンター</code> / <code>ON/OFF</code> / <code>タップ座標</code> / <code>Studioでの書き方</code>
-  </div>
-
-  <div id="aiLog" style="height:240px;overflow:auto;border:1px solid #ddd;border-radius:12px;padding:10px;margin-top:10px;white-space:pre-wrap"></div>
-
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-    <button class="aiChip" data-q="カウンターを作りたい">カウンター</button>
-    <button class="aiChip" data-q="ON/OFF切り替えたい">ON/OFF</button>
-    <button class="aiChip" data-q="タップした座標を表示したい">タップ座標</button>
-    <button class="aiChip" data-q="Roblox Studioで動くLocalScript例がほしい">Studio例</button>
-  </div>
-
-  <textarea id="aiInput" style="width:100%;min-height:84px;border:1px solid #ddd;border-radius:12px;padding:10px;font-size:14px;box-sizing:border-box;margin-top:10px"
-    placeholder="やりたいことを書いて送信（例：ボタンでON/OFF切り替えたい）"></textarea>
-
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-    <button id="aiSend">送信</button>
-    <button id="aiInsert">おすすめをエディタに挿入</button>
-    <button id="aiClear">AIログ消し</button>
-  </div>
-</div>
 </body>
 </html>
