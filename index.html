@@ -173,6 +173,14 @@ end)
   <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 
   <script>
+  // ===== エラーを画面に出す（iPhone用）=====
+window.onerror = function (msg, src, line, col, err) {
+  const s = `JS ERROR: ${msg}\n${src || ""}:${line || ""}:${col || ""}`;
+  try {
+    const out = document.getElementById("out");
+    if (out) out.textContent = s;
+  } catch(e){}
+};
     // =========================
     // Core UI refs
     // =========================
