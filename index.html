@@ -605,34 +605,24 @@ aiSend.onclick = ()=>{
 };
 
 aiInsert.onclick = ()=>{
-  try {
-    if (!aiBest || !aiBest.code) {
-      aiWrite("AI", "先に送信しておすすめを出してね。");
-      return;
-    }
+  if (!aiBest || !aiBest.code) {
+    aiWrite("AI", "先に送信しておすすめを出してね。");
+    return;
+  }
 
-    // 1) textarea（必ず存在）に必ず書く
-    const fb = document.getElementById("editorFallback");
-    if (fb) fb.value = aiBest.code;
+  // まずtextareaにも書く（保険）
+  const fb = document.getElementById("editorFallback");
+  if (fb) fb.value = aiBest.code;
 
-    // 2) MonacoがあればMonacoにも書く
-    const ed = (window.Dojo && typeof window.Dojo.getEditor === "function") ? window.Dojo.getEditor() : null;
-    if (ed && typeof ed.setValue === "function") {
-      ed.setValue(aiBest.code);
-      ed.focus();
-      aiWrite("AI", `Monacoに挿入した：${aiBest.key}`);
-    } else {
-      if (fb) fb.focus();
-      aiWrite("AI", `textareaに挿入した：${aiBest.key}（Monaco未準備かも）`);
-    }
-
-    // 3) 説明も更新
-    if (window.Dojo && typeof window.Dojo.showDoc === "function") {
-      window.Dojo.showDoc(aiBest);
-    }
-
-  } catch (err) {
-    aiWrite("AI", "挿入でエラー: " + (err && err.message ? err.message : err));
+  // Monacoがあるなら“本物”に直接入れる
+  const ed = window.__dojoMonacoEditor;
+  if (ed && ed.getModel && ed.getModel()) {
+    ed.focus();
+    ed.getModel().setValue(aiBest.code);   // ← setValueより確実
+    aiWrite("AI", `Monacoに挿入した：${aiBest.key}（${aiBest.code.length} chars）`);
+  } else {
+    if (fb) fb.focus();
+    aiWrite("AI", `textareaに挿入した：${aiBest.key}（Monaco未準備）`);
   }
 };
 
