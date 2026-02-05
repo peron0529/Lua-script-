@@ -1,46 +1,111 @@
-document.body.insertAdjacentHTML("afterbegin","<div style='padding:6px 10px;border:1px solid #ddd;border-radius:10px;margin:8px 0'>VERSION: FINAL-3</div>");
 <!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dojo Core (Fixed)</title>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dojo — Lua Editor (Always Works)</title>
+  <style>
+    body{font-family:-apple-system,system-ui,sans-serif;margin:12px}
+    h2{margin:8px 0}
+    .hint{opacity:.78;font-size:12px;line-height:1.35;margin:6px 0 10px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fff}
+    button:active{transform:scale(.98)}
+    #out{background:#111;color:#0f0;padding:10px;border-radius:10px;min-height:110px;white-space:pre-wrap;overflow:auto}
+    #editorWrap{margin:10px 0}
+    #editorFallback{
+      width:100%; height:260px;
+      border:1px solid #ddd; border-radius:12px;
+      padding:10px;
+      font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size:14px; line-height:1.35;
+      box-sizing:border-box;
+    }
+    #editor{width:100%;height:260px;border:1px solid #ddd;border-radius:12px;overflow:hidden;display:none}
+    #stage{
+      width:100%;max-width:360px;aspect-ratio:9/16;
+      border:1px solid #bbb;border-radius:16px;
+      background:#f7f7f7;position:relative;overflow:hidden
+    }
+    code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <h2>Dojo（Lua練習・必ず書けるエディタ付き）</h2>
+  <div class="hint">
+    ✅ スクリプトを書く場所：下の「Lua Editor」<br>
+    ✅ 実行：<b>Run</b> → Outputに結果。白い枠タップで <code>Input.onTap</code> が動く。
+  </div>
 
-<button id="run">Run</button>
-<button id="reset">Reset</button>
+  <div class="row">
+    <button id="run">Run</button>
+    <button id="reset">Reset</button>
+    <button id="clear">Clear Output</button>
+  </div>
 
-<pre id="out" style="background:#111;color:#0f0;padding:10px;border-radius:10px;min-height:110px"></pre>
+  <div id="out"></div>
 
-<div id="stage" style="
-  width:100%;max-width:320px;aspect-ratio:9/16;
-  border:1px solid #bbb;border-radius:16px;
-  background:#f7f7f7;position:relative;overflow:hidden">
-</div>
+  <div id="editorWrap">
+    <div class="hint"><b>Lua Editor（ここに書く）</b>：Monacoが無理でも<textarea>で必ず使える</div>
 
-<script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
+    <!-- まず必ず出るフォールバック（これが「書く場所」） -->
+    <textarea id="editorFallback">
+-- ここにLuaを書く（この箱は必ず出る）
+print("Ready! Tap the stage")
 
-<script>
-const out = document.getElementById("out");
-const stage = document.getElementById("stage");
-let running = false;
-let tapHandlers = [];
+Input.onTap(function(x, y)
+  print("Tap:", x, y)
+end)
+</textarea>
 
-function log(s){ out.textContent += String(s) + "\n"; }
+    <!-- Monacoがロードできたらこのdivが表示される -->
+    <div id="editor"></div>
+  </div>
 
-// タップ検知
-stage.onclick = (e)=>{
-  if(!running) return;
-  const r = stage.getBoundingClientRect();
-  const x = Math.round(e.clientX - r.left);
-  const y = Math.round(e.clientY - r.top);
-  tapHandlers.forEach(fn => fn(x,y));
-};
+  <div class="hint">↓ ここをタップするとイベント発火（座標がOutputに出る）</div>
+  <div id="stage"></div>
 
-// Luaから呼ばれる関数
-window.appendOutput = (s)=> out.textContent += String(s);
-window.__inputOnTap = (fn)=> tapHandlers.push(fn);
+  <!-- Lua VM -->
+  <script src="https://cdn.jsdelivr.net/npm/fengari-web/dist/fengari-web.js"></script>
 
-// Luaラッパー（← ここ重要）
-function wrap(userCode){
-  return `
+  <!-- Monaco（読み込めたら使う。ダメでもtextareaがあるので問題なし） -->
+  <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+  <script>
+    const out = document.getElementById("out");
+    const stage = document.getElementById("stage");
+    const runBtn = document.getElementById("run");
+    const resetBtn = document.getElementById("reset");
+    const clearBtn = document.getElementById("clear");
+
+    const editorDiv = document.getElementById("editor");
+    const editorFallback = document.getElementById("editorFallback");
+
+    let running = false;
+    let tapHandlers = [];
+    let editor = null; // Monaco editor instance (optional)
+
+    function logLine(s){
+      out.textContent += String(s) + "\n";
+      out.scrollTop = out.scrollHeight;
+    }
+
+    // 改行問題を避ける：Lua側で \n を作らない。JS側で改行を足す。
+    window.appendOutput = (s)=> { logLine(s); };
+    window.__inputOnTap = (fn)=> { tapHandlers.push(fn); };
+
+    stage.onclick = (e)=>{
+      if(!running) return;
+      const r = stage.getBoundingClientRect();
+      const x = Math.round(e.clientX - r.left);
+      const y = Math.round(e.clientY - r.top);
+      for (const fn of tapHandlers) {
+        try { fn(x,y); } catch(err) { logLine("JS handler error: " + err); }
+      }
+    };
+
+    function wrap(userCode){
+      return `
 Input = {}
 
 function Input.onTap(fn)
@@ -52,40 +117,78 @@ print = function(...)
   for i=1,select('#', ...) do
     t[#t+1] = tostring(select(i, ...))
   end
-  js.global:appendOutput(table.concat(t, " ") .. "\\n")
+  js.global:appendOutput(table.concat(t, " "))
 end
 
 ${userCode}
 `;
-}
+    }
 
-document.getElementById("run").onclick = ()=>{
-  out.textContent = "";
-  tapHandlers = [];
-  running = true;
+    function getUserLua(){
+      // Monacoが使えるならMonacoから、無理ならtextareaから
+      if (editor && typeof editor.getValue === "function") return editor.getValue();
+      return editorFallback.value || "";
+    }
 
-  if (!window.fengari || !fengari.load) {
-    log("Lua engineが読み込めてない");
-    return;
-  }
+    runBtn.onclick = ()=>{
+      out.textContent = "";
+      tapHandlers = [];
+      running = true;
 
-  try {
-    const userLua = `
-Input.onTap(function(x, y)
-  print("Tap:", x, y)
-end)
+      if (!window.fengari || !fengari.load) {
+        logLine("Lua engineが読み込めてない（通信/ブロックが原因かも）");
+        return;
+      }
 
-print("Ready! Tap the stage")
-`;
-    fengari.load(wrap(userLua))();
-  } catch (e) {
-    log("Lua Error: " + (e.message || e));
-  }
-};
+      try {
+        const userLua = getUserLua();
+        fengari.load(wrap(userLua))();
+      } catch (e) {
+        logLine("Lua Error: " + (e && e.message ? e.message : e));
+      }
+    };
 
-document.getElementById("reset").onclick = ()=>{
-  running = false;
-  tapHandlers = [];
-  out.textContent = "";
-};
-</script>
+    resetBtn.onclick = ()=>{
+      running = false;
+      tapHandlers = [];
+      out.textContent = "";
+    };
+
+    clearBtn.onclick = ()=>{ out.textContent = ""; };
+
+    // Monaco init（失敗してもOK：textareaが残る）
+    (function initMonaco(){
+      if (!window.require) {
+        logLine("Monaco未使用（textareaでOK）。");
+        return;
+      }
+      try {
+        require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
+        require(["vs/editor/editor.main"], function () {
+          // textareaの内容をMonacoへ移す
+          const initial = editorFallback.value || "";
+
+          editor = monaco.editor.create(editorDiv, {
+            value: initial,
+            language: "lua",
+            theme: "vs",
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 14,
+            wordWrap: "on",
+            scrollBeyondLastLine: false
+          });
+
+          // textareaは隠してMonacoを表示
+          editorFallback.style.display = "none";
+          editorDiv.style.display = "block";
+
+          logLine("Monaco Editor Ready（VSCodeのエディタ）");
+        });
+      } catch (e) {
+        logLine("Monaco初期化に失敗（textareaで続行）: " + (e.message || e));
+      }
+    })();
+  </script>
+</body>
+</html>
