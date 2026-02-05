@@ -65,12 +65,173 @@ window.onerror = function(msg, src, line, col){
 // LocalScript 辞書
 // ======================
 const LS_DB = [
+  // =====================
+  // 最重要・最初に覚える
+  // =====================
   {
     key:"local.basic",
     desc:"local変数の基本",
     code:`local x = 10
 print(x)`
   },
+  {
+    key:"local.multi",
+    desc:"複数のlocal変数",
+    code:`local a, b = 1, 2
+print(a, b)`
+  },
+  {
+    key:"local.scope",
+    desc:"スコープの違い",
+    code:`local x = 1
+do
+  local x = 2
+  print(x)
+end
+print(x)`
+  },
+
+  // =====================
+  // 関数
+  // =====================
+  {
+    key:"function.basic",
+    desc:"関数の基本",
+    code:`local function hello()
+  print("hello")
+end
+
+hello()`
+  },
+  {
+    key:"function.args",
+    desc:"引数つき関数",
+    code:`local function add(a, b)
+  return a + b
+end
+
+print(add(2, 3))`
+  },
+
+  // =====================
+  // 条件・ループ
+  // =====================
+  {
+    key:"if.basic",
+    desc:"if文",
+    code:`local x = 5
+if x > 3 then
+  print("big")
+end`
+  },
+  {
+    key:"if.else",
+    desc:"if else",
+    code:`local x = 1
+if x > 3 then
+  print("big")
+else
+  print("small")
+end`
+  },
+  {
+    key:"for.numeric",
+    desc:"forループ（数値）",
+    code:`for i = 1, 5 do
+  print(i)
+end`
+  },
+  {
+    key:"for.pairs",
+    desc:"pairsループ",
+    code:`local t = {a=1, b=2}
+for k, v in pairs(t) do
+  print(k, v)
+end`
+  },
+  {
+    key:"while.loop",
+    desc:"whileループ",
+    code:`local i = 1
+while i <= 3 do
+  print(i)
+  i += 1
+end`
+  },
+
+  // =====================
+  // table / string / math
+  // =====================
+  {
+    key:"table.basic",
+    desc:"tableの基本",
+    code:`local t = {1,2,3}
+print(t[1])`
+  },
+  {
+    key:"table.insert",
+    desc:"table.insert",
+    code:`local t = {}
+table.insert(t, "A")
+print(#t)`
+  },
+  {
+    key:"string.concat",
+    desc:"文字列結合",
+    code:`local a = "Hello "
+local b = "Lua"
+print(a .. b)`
+  },
+  {
+    key:"math.random",
+    desc:"ランダム数",
+    code:`math.randomseed(os.time())
+print(math.random(1, 10))`
+  },
+
+  // =====================
+  // 状態・デバッグ
+  // =====================
+  {
+    key:"state.toggle",
+    desc:"ON / OFF トグル",
+    code:`local on = false
+on = not on
+print(on)`
+  },
+  {
+    key:"print.debug",
+    desc:"デバッグprint",
+    code:`print("DEBUG:", os.clock())`
+  },
+  {
+    key:"pcall.basic",
+    desc:"pcallで安全実行",
+    code:`local ok, err = pcall(function()
+  error("oops")
+end)
+print(ok, err)`
+  },
+
+  // =====================
+  // 時間・モジュール
+  // =====================
+  {
+    key:"time.wait",
+    desc:"task.wait",
+    code:`task.wait(1)
+print("after 1s")`
+  },
+  {
+    key:"require.module",
+    desc:"ModuleScript require",
+    code:`local mod = require(script:WaitForChild("MyModule"))
+mod.run()`
+  },
+
+  // =====================
+  // Roblox LocalScript 基本
+  // =====================
   {
     key:"service.get",
     desc:"Service取得",
@@ -88,17 +249,28 @@ gui.Parent = player:WaitForChild("PlayerGui")`
   },
   {
     key:"input.tap",
-    desc:"タップ検知",
+    desc:"タップ検知（モバイル）",
     code:`local UIS = game:GetService("UserInputService")
 
-UIS.InputBegan:Connect(function(input,gp)
+UIS.InputBegan:Connect(function(input, gp)
   if gp then return end
   if input.UserInputType == Enum.UserInputType.Touch then
     print("tap")
   end
 end)`
-  }
+  },
+
+  // =====================
+  // コメント
+  // =====================
+  {
+    key:"comment.note",
+    desc:"コメントの書き方",
+    code:`-- これはコメント
+print("code")`
+  },
 ];
+
 
 // ======================
 // Monaco 起動
