@@ -1,8 +1,8 @@
 diff --git a/index.html b/index.html
-index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e3445c685087 100644
+index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..b9b4f4017c22abc33400f7aa86a46d255ef58582 100644
 --- a/index.html
 +++ b/index.html
-@@ -1,109 +1,236 @@
+@@ -1,109 +1,298 @@
  <!doctype html>
  <html lang="ja">
  <head>
@@ -27,7 +27,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 +      color-scheme: dark;
 +      --bg: #0b1020;
 +      --panel: #141b33;
-+      --line: rgba(255, 255, 255, 0.12);
++      --line: rgba(255, 255, 255, 0.14);
 +      --text: #e8ecff;
 +      --accent: #5b8cff;
 +      --accent-soft: rgba(91, 140, 255, 0.15);
@@ -57,44 +57,41 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 +      backdrop-filter: blur(8px);
 +      z-index: 2;
 +    }
-+    h1 {
-+      margin: 0;
-+      font-size: 18px;
-+      letter-spacing: 0.3px;
-+    }
-+    .status {
-+      font-size: 13px;
-+      font-weight: 700;
-+      opacity: 0.9;
-+      color: var(--ok);
-+    }
-+    main {
-+      display: grid;
-+      grid-template-columns: 1fr 320px;
-+      min-height: 0;
-+    }
-+    #editor {
++    h1 { margin: 0; font-size: 18px; letter-spacing: 0.3px; }
++    .status { font-size: 13px; font-weight: 700; color: var(--ok); }
++    main { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
++    .editor-wrap {
 +      min-height: 64vh;
 +      height: calc(100vh - 145px);
++      border-right: 1px solid var(--line);
++      background: #11172a;
++    }
++    #editor, #fallbackEditor {
++      width: 100%;
++      height: 100%;
++      display: block;
++    }
++    #fallbackEditor {
++      display: none;
++      border: 0;
++      outline: none;
++      resize: none;
++      padding: 14px;
++      background: #11172a;
++      color: #e9eeff;
++      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
++      font-size: 14px;
++      line-height: 1.5;
 +    }
 +    aside {
 +      background: rgba(20, 27, 51, 0.9);
-+      border-left: 1px solid var(--line);
 +      padding: 14px;
 +      display: flex;
 +      flex-direction: column;
 +      gap: 12px;
 +    }
-+    .help {
-+      margin: 0;
-+      font-size: 13px;
-+      line-height: 1.5;
-+      opacity: 0.95;
-+    }
-+    .buttons {
-+      display: grid;
-+      gap: 8px;
-+    }
++    .help { margin: 0; font-size: 13px; line-height: 1.5; }
++    .buttons { display: grid; gap: 8px; }
 +    button {
 +      border: 1px solid transparent;
 +      border-radius: 10px;
@@ -104,41 +101,35 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 +      font-size: 13px;
 +      font-weight: 800;
 +      cursor: pointer;
++      text-align: left;
 +    }
-+    button:hover { filter: brightness(1.08); }
-+    button.ghost {
++    button.ghost { background: transparent; border-color: var(--line); }
++    button.soft { background: var(--accent-soft); border-color: rgba(91, 140, 255, 0.45); }
++    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
++    .chips button {
++      padding: 6px 10px;
++      border-radius: 999px;
 +      background: transparent;
-+      border-color: var(--line);
-+    }
-+    button.soft {
-+      background: var(--accent-soft);
-+      border-color: rgba(91, 140, 255, 0.5);
++      border: 1px solid var(--line);
++      font-size: 12px;
 +    }
 +    #log {
 +      margin: 0;
 +      padding: 10px;
 +      border-radius: 10px;
 +      border: 1px solid var(--line);
-+      min-height: 82px;
++      min-height: 70px;
 +      font-size: 12px;
-+      line-height: 1.45;
 +      white-space: pre-wrap;
-+      opacity: 0.92;
 +    }
-+    footer {
-+      border-top: 1px solid var(--line);
-+      background: rgba(20, 27, 51, 0.88);
-+      padding: 9px 14px;
-+      font-size: 12px;
-+      opacity: 0.82;
-+    }
++    footer { border-top: 1px solid var(--line); padding: 9px 14px; font-size: 12px; opacity: 0.85; background: rgba(20, 27, 51, 0.88); }
 +    @media (max-width: 900px) {
 +      main { grid-template-columns: 1fr; }
-+      #editor { height: 56vh; }
-+      aside { border-left: 0; border-top: 1px solid var(--line); }
++      .editor-wrap { height: 56vh; border-right: 0; }
++      aside { border-top: 1px solid var(--line); }
 +    }
 +  </style>
-+  <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
++  <script defer src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
  </head>
  <body>
 +  <header>
@@ -150,36 +141,16 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 -  <div>Dojo Stable</div>
 -  <div id="status" style="opacity:.7;font-weight:700">loading...</div>
 -</header>
-+  <main>
-+    <div id="editor"></div>
-+    <aside>
-+      <p class="help">
-+        「local script」をすぐ書ける練習用サイトです。<br>
-+        <b>local</b> / <b>function</b> / <b>end</b> などの候補を出せます。
-+      </p>
-+      <div class="buttons">
-+        <button id="btnSuggest">補完を開く</button>
-+        <button id="btnInsert" class="soft">local スニペット挿入</button>
-+        <button id="btnSample" class="ghost">サンプルを読み込む</button>
-+        <button id="btnReset" class="ghost">リセット</button>
-+      </div>
-+      <pre id="log">準備中...</pre>
-+    </aside>
-+  </main>
- 
+-
 -<div id="editor"></div>
-+  <footer>Tip: Ctrl/Cmd + Space でも補完を開けます。</footer>
- 
+-
 -<div id="panel">
 -  <button id="btnSuggest">補完を出す</button>
 -  <button id="btnInsert" class="ghost">local を挿入</button>
 -  <button id="btnReset" class="ghost">リセット</button>
 -  <div id="log">ready.</div>
 -</div>
-+  <script>
-+    const INITIAL_CODE = `-- Lua local script を書いてみよう\n\nlocal message = "hello"\nprint(message)\n`;
-+    const SAMPLE_CODE = `-- local function サンプル\nlocal function greet(name)\n  local text = "Hello, " .. name\n  return text\nend\n\nprint(greet("Lua"))\n`;
- 
+-
 -<script>
 -// ===== 画面にエラー表示（iPhone用）=====
 -window.onerror = function(msg, src, line, col){
@@ -189,36 +160,20 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 -  if (log) log.textContent =
 -    "JS ERROR:\n" + msg + "\n" + (src||"") + ":" + line + ":" + col;
 -};
-+    const COMPLETIONS = [
-+      { label: "local", kind: "Keyword", insertText: "local ", detail: "ローカル変数・関数を宣言" },
-+      { label: "local function", kind: "Snippet", insertText: "local function ${1:name}(${2:args})\\n  ${3:-- body}\\nend", detail: "ローカル関数テンプレート" },
-+      { label: "function", kind: "Keyword", insertText: "function ", detail: "関数キーワード" },
-+      { label: "end", kind: "Keyword", insertText: "end", detail: "ブロック終端" }
-+    ];
- 
+-
 -// ===== 候補（localだけ）=====
 -const LS_DB = [
 -  { key:"local", desc:"Luaのlocalキーワード", code:"local " },
 -];
-+    window.onerror = function (msg, src, line, col) {
-+      document.getElementById("status").textContent = "error";
-+      document.getElementById("status").style.color = "var(--warn)";
-+      document.getElementById("log").textContent = `JS ERROR:\n${msg}\n${src || ""}:${line}:${col}`;
-+    };
- 
+-
 -// ===== Monaco起動 =====
 -require.config({ paths:{ vs:"https://unpkg.com/monaco-editor@0.45.0/min/vs" }});
 -require(["vs/editor/editor.main"], function(){
 -  const status = document.getElementById("status");
 -  const log = document.getElementById("log");
-+    require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
-+    require(["vs/editor/editor.main"], function () {
-+      const status = document.getElementById("status");
-+      const log = document.getElementById("log");
- 
+-
 -  try { monaco.languages.register({ id:"lua" }); } catch(e){}
-+      try { monaco.languages.register({ id: "lua" }); } catch (_) {}
- 
+-
 -  const editor = monaco.editor.create(document.getElementById("editor"), {
 -    value: "-- local と打ってみて\n\n",
 -    language: "lua",
@@ -230,20 +185,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 -    suggestOnTriggerCharacters: true,
 -    tabCompletion: "on"
 -  });
-+      const editor = monaco.editor.create(document.getElementById("editor"), {
-+        value: INITIAL_CODE,
-+        language: "lua",
-+        theme: "vs-dark",
-+        minimap: { enabled: false },
-+        fontSize: 14,
-+        lineNumbersMinChars: 3,
-+        wordWrap: "on",
-+        quickSuggestions: true,
-+        suggestOnTriggerCharacters: true,
-+        tabCompletion: "on",
-+        automaticLayout: true
-+      });
- 
+-
 -  // 補完登録（localだけ）
 -  monaco.languages.registerCompletionItemProvider("lua", {
 -    provideCompletionItems: () => ({
@@ -255,20 +197,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 -      }))
 -    })
 -  });
-+      monaco.languages.registerCompletionItemProvider("lua", {
-+        provideCompletionItems: () => ({
-+          suggestions: COMPLETIONS.map((item) => ({
-+            label: item.label,
-+            kind: monaco.languages.CompletionItemKind[item.kind],
-+            insertText: item.insertText,
-+            insertTextRules: item.kind === "Snippet"
-+              ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-+              : undefined,
-+            detail: item.detail
-+          }))
-+        })
-+      });
- 
+-
 -  // ボタン
 -  document.getElementById("btnSuggest").onclick = ()=>{
 -    try { editor.trigger("manual","editor.action.triggerSuggest",{}); } catch(e){}
@@ -287,44 +216,188 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..57c21233921d6ae360982c190a29e344
 -    editor.focus();
 -    log.textContent = "reset";
 -  };
-+      document.getElementById("btnSuggest").onclick = () => {
-+        editor.trigger("manual", "editor.action.triggerSuggest", {});
-+        log.textContent = "補完候補を開きました。";
-+      };
- 
+-
 -  // 最初に一回だけ補完を開く（iPhone対策）
 -  setTimeout(()=>{ try { editor.trigger("auto","editor.action.triggerSuggest",{}); } catch(e){} }, 250);
-+      document.getElementById("btnInsert").onclick = () => {
-+        const pos = editor.getPosition() || { lineNumber: 1, column: 1 };
-+        const snippet = "local function name(args)\\n  -- body\\nend\\n";
-+        editor.executeEdits("insert", [{
-+          range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
-+          text: snippet
-+        }]);
-+        editor.focus();
-+        log.textContent = "local function スニペットを挿入しました。";
-+      };
- 
+-
 -  if (status) status.textContent = "ready";
 -  log.textContent = "OK：local が候補に出るはず。出なければ『補完を出す』を押して。";
 -});
 -</script>
-+      document.getElementById("btnSample").onclick = () => {
-+        editor.setValue(SAMPLE_CODE);
-+        editor.focus();
-+        log.textContent = "サンプルコードを読み込みました。";
-+      };
++  <main>
++    <div class="editor-wrap">
++      <div id="editor"></div>
++      <textarea id="fallbackEditor" spellcheck="false"></textarea>
++    </div>
++    <aside>
++      <p class="help">スクリーンショットと同じ見た目になるよう、Monaco が読み込めない時は自動でフォールバックエディタを表示します。</p>
++      <div class="buttons">
++        <button id="btnSuggest">補完を開く（Monaco時のみ）</button>
++        <button id="btnInsert" class="soft">local function を挿入</button>
++        <button id="btnSample" class="ghost">サンプルを読み込む</button>
++        <button id="btnReset" class="ghost">リセット</button>
++      </div>
++      <div class="chips">
++        <button type="button" data-insert="local ">local</button>
++        <button type="button" data-insert="function ">function</button>
++        <button type="button" data-insert="end">end</button>
++      </div>
++      <pre id="log">準備中...</pre>
++    </aside>
++  </main>
  
-+      document.getElementById("btnReset").onclick = () => {
-+        editor.setValue(INITIAL_CODE);
++  <footer>Tip: Monacoが使えない環境でも textarea で必ず入力できます。</footer>
++
++  <script>
++    const INITIAL_CODE = `-- Lua local script を書いてみよう\n\nlocal message = "hello"\nprint(message)\n`;
++    const SAMPLE_CODE = `-- local function サンプル\nlocal function greet(name)\n  local text = "Hello, " .. name\n  return text\nend\n\nprint(greet("Lua"))\n`;
++    const SNIPPET = "local function name(args)\\n  -- body\\nend\\n";
++
++    const statusEl = document.getElementById("status");
++    const logEl = document.getElementById("log");
++    const fallbackEl = document.getElementById("fallbackEditor");
++
++    let editor = null;
++    let useFallback = false;
++
++    function setStatus(text, ok = true) {
++      statusEl.textContent = text;
++      statusEl.style.color = ok ? "var(--ok)" : "var(--warn)";
++    }
++
++    function getCode() {
++      return useFallback ? fallbackEl.value : editor.getValue();
++    }
++
++    function setCode(text) {
++      if (useFallback) {
++        fallbackEl.value = text;
++        fallbackEl.focus();
++      } else {
++        editor.setValue(text);
 +        editor.focus();
-+        log.textContent = "初期コードに戻しました。";
++      }
++    }
++
++    function insertAtCursor(text) {
++      if (useFallback) {
++        const start = fallbackEl.selectionStart;
++        const end = fallbackEl.selectionEnd;
++        fallbackEl.setRangeText(text, start, end, "end");
++        fallbackEl.focus();
++        return;
++      }
++      const pos = editor.getPosition() || { lineNumber: 1, column: 1 };
++      editor.executeEdits("insert", [{
++        range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
++        text
++      }]);
++      editor.focus();
++    }
++
++    function enableFallback(reason) {
++      useFallback = true;
++      document.getElementById("editor").style.display = "none";
++      fallbackEl.style.display = "block";
++      fallbackEl.value = INITIAL_CODE;
++      setStatus("fallback ready", false);
++      logEl.textContent = `Monacoの読込に失敗したためフォールバック表示に切り替えました。\n理由: ${reason}`;
++    }
++
++    function setupButtons() {
++      document.getElementById("btnSuggest").onclick = () => {
++        if (useFallback) {
++          logEl.textContent = "フォールバックモードでは補完UIは使えません。下の単語ボタンを使ってください。";
++          return;
++        }
++        editor.trigger("manual", "editor.action.triggerSuggest", {});
++        logEl.textContent = "補完候補を開きました。";
 +      };
 +
++      document.getElementById("btnInsert").onclick = () => {
++        insertAtCursor(SNIPPET);
++        logEl.textContent = "local function スニペットを挿入しました。";
++      };
++
++      document.getElementById("btnSample").onclick = () => {
++        setCode(SAMPLE_CODE);
++        logEl.textContent = "サンプルコードを読み込みました。";
++      };
++
++      document.getElementById("btnReset").onclick = () => {
++        setCode(INITIAL_CODE);
++        logEl.textContent = "初期コードに戻しました。";
++      };
++
++      document.querySelectorAll("[data-insert]").forEach((button) => {
++        button.onclick = () => {
++          insertAtCursor(button.dataset.insert || "");
++          logEl.textContent = `挿入: ${button.dataset.insert}`;
++        };
++      });
++    }
++
++    function setupMonaco() {
++      const completions = [
++        { label: "local", kind: "Keyword", insertText: "local ", detail: "ローカル変数・関数を宣言" },
++        { label: "local function", kind: "Snippet", insertText: "local function ${1:name}(${2:args})\\n  ${3:-- body}\\nend", detail: "ローカル関数テンプレート" },
++        { label: "function", kind: "Keyword", insertText: "function ", detail: "関数キーワード" },
++        { label: "end", kind: "Keyword", insertText: "end", detail: "ブロック終端" }
++      ];
++
++      try { monaco.languages.register({ id: "lua" }); } catch (_) {}
++
++      editor = monaco.editor.create(document.getElementById("editor"), {
++        value: INITIAL_CODE,
++        language: "lua",
++        theme: "vs-dark",
++        minimap: { enabled: false },
++        fontSize: 14,
++        lineNumbersMinChars: 3,
++        wordWrap: "on",
++        quickSuggestions: true,
++        suggestOnTriggerCharacters: true,
++        tabCompletion: "on",
++        automaticLayout: true
++      });
++
++      monaco.languages.registerCompletionItemProvider("lua", {
++        provideCompletionItems: () => ({
++          suggestions: completions.map((item) => ({
++            label: item.label,
++            kind: monaco.languages.CompletionItemKind[item.kind],
++            insertText: item.insertText,
++            insertTextRules: item.kind === "Snippet"
++              ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
++              : undefined,
++            detail: item.detail
++          }))
++        })
++      });
++
++      setStatus("ready");
++      logEl.textContent = "準備完了。local を入力して補完を試してください。";
 +      setTimeout(() => editor.trigger("auto", "editor.action.triggerSuggest", {}), 250);
-+      status.textContent = "ready";
-+      log.textContent = "準備完了。local を入力して補完を試してください。";
-+    });
++    }
++
++    window.onerror = function (msg, src, line, col) {
++      if (!useFallback) {
++        enableFallback(`${msg} (${src || "inline"}:${line}:${col})`);
++      }
++    };
++
++    setupButtons();
++
++    if (!window.require) {
++      enableFallback("require loader が利用できませんでした");
++    } else {
++      try {
++        require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
++        require(["vs/editor/editor.main"], setupMonaco, () => enableFallback("Monaco module のロード失敗"));
++      } catch (e) {
++        enableFallback(e.message || "Monaco 初期化失敗");
++      }
++    }
 +  </script>
  </body>
  </html>
