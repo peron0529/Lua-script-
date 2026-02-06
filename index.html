@@ -1,3 +1,4 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/index.html b/index.html
 index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..6de3c813b1ebcbafa1471682578492cd883ca61f 100644
 --- a/index.html
@@ -405,4 +406,4 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..6de3c813b1ebcbafa1471682578492cd
 +  </script>
  </body>
  </html>
-
+ 
