@@ -1,8 +1,8 @@
 diff --git a/index.html b/index.html
-index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..b9b4f4017c22abc33400f7aa86a46d255ef58582 100644
+index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..6de3c813b1ebcbafa1471682578492cd883ca61f 100644
 --- a/index.html
 +++ b/index.html
-@@ -1,109 +1,298 @@
+@@ -1,109 +1,302 @@
  <!doctype html>
  <html lang="ja">
  <head>
@@ -129,7 +129,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..b9b4f4017c22abc33400f7aa86a46d25
 +      aside { border-top: 1px solid var(--line); }
 +    }
 +  </style>
-+  <script defer src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
++  <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
  </head>
  <body>
 +  <header>
@@ -388,9 +388,11 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..b9b4f4017c22abc33400f7aa86a46d25
 +
 +    setupButtons();
 +
-+    if (!window.require) {
-+      enableFallback("require loader が利用できませんでした");
-+    } else {
++    function bootMonacoOrFallback() {
++      if (!window.require) {
++        enableFallback("require loader が利用できませんでした");
++        return;
++      }
 +      try {
 +        require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
 +        require(["vs/editor/editor.main"], setupMonaco, () => enableFallback("Monaco module のロード失敗"));
@@ -398,6 +400,9 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..b9b4f4017c22abc33400f7aa86a46d25
 +        enableFallback(e.message || "Monaco 初期化失敗");
 +      }
 +    }
++
++    bootMonacoOrFallback();
 +  </script>
  </body>
  </html>
+
