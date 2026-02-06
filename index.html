@@ -1,9 +1,8 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/index.html b/index.html
-index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..c224916d26de4082bd5fb656112d905942e4f790 100644
+index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..0852c87794dd9226c5b766d0a14e3f6e7c57feb7 100644
 --- a/index.html
 +++ b/index.html
-@@ -1,109 +1,238 @@
+@@ -1,109 +1,116 @@
  <!doctype html>
  <html lang="ja">
  <head>
@@ -22,116 +21,34 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..c224916d26de4082bd5fb656112d9059
 -<script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
 +  <meta charset="utf-8" />
 +  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <meta http-equiv="Cache-Control" content="no-store, max-age=0" />
++  <meta http-equiv="Pragma" content="no-cache" />
++  <meta http-equiv="Expires" content="0" />
 +  <title>Lua Local Script Playground</title>
 +  <style>
-+    :root {
-+      --bg: #0b1020;
-+      --panel: #141b33;
-+      --line: rgba(255, 255, 255, 0.14);
-+      --text: #e8ecff;
-+      --ok: #53d28c;
-+      --accent: #5b8cff;
-+      --chip: rgba(255, 255, 255, 0.06);
-+    }
-+    * { box-sizing: border-box; }
-+    body {
-+      margin: 0;
-+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-+      background: radial-gradient(1200px 500px at 20% -20%, #243160 0%, var(--bg) 50%);
-+      color: var(--text);
-+      min-height: 100vh;
-+      display: grid;
-+      grid-template-rows: auto 1fr auto;
-+    }
-+    header {
-+      padding: 14px 18px;
-+      display: flex;
-+      justify-content: space-between;
-+      align-items: center;
-+      background: rgba(20, 27, 51, 0.9);
-+      border-bottom: 1px solid var(--line);
-+    }
-+    .status { color: var(--ok); font-size: 13px; font-weight: 700; }
-+    main {
-+      display: grid;
-+      grid-template-columns: 1fr 320px;
-+      min-height: 0;
-+    }
-+    .editor-wrap {
-+      height: calc(100vh - 120px);
-+      min-height: 60vh;
-+      border-right: 1px solid var(--line);
-+      background: #11172a;
-+    }
-+    #editor {
-+      width: 100%;
-+      height: 100%;
-+      border: 0;
-+      outline: none;
-+      resize: none;
-+      padding: 14px;
-+      background: #11172a;
-+      color: #e9eeff;
-+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-+      font-size: 14px;
-+      line-height: 1.5;
-+      tab-size: 2;
-+    }
-+    aside { padding: 14px; background: rgba(20, 27, 51, 0.9); }
-+    .help { margin-top: 0; font-size: 13px; line-height: 1.5; }
-+    .buttons, .chips { display: grid; gap: 8px; }
-+    .chips { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 10px; }
-+    button {
-+      border: 1px solid transparent;
-+      border-radius: 10px;
-+      padding: 9px 11px;
-+      background: var(--accent);
-+      color: #fff;
-+      font-size: 13px;
-+      font-weight: 700;
-+      cursor: pointer;
-+      text-align: left;
-+    }
-+    button.ghost { background: transparent; border-color: var(--line); }
-+    .chips button { background: var(--chip); border-color: var(--line); text-align: center; }
-+    #suggest {
-+      margin-top: 10px;
-+      border: 1px solid var(--line);
-+      border-radius: 10px;
-+      overflow: hidden;
-+      display: none;
-+      background: rgba(8, 12, 26, 0.9);
-+    }
-+    #suggest button {
-+      border-radius: 0;
-+      border: 0;
-+      border-top: 1px solid var(--line);
-+      background: transparent;
-+      width: 100%;
-+    }
-+    #suggest button:first-child { border-top: 0; }
-+    #log {
-+      margin-top: 10px;
-+      border: 1px solid var(--line);
-+      border-radius: 10px;
-+      min-height: 66px;
-+      padding: 9px;
-+      white-space: pre-wrap;
-+      font-size: 12px;
-+      line-height: 1.5;
-+    }
-+    footer {
-+      border-top: 1px solid var(--line);
-+      padding: 8px 14px;
-+      font-size: 12px;
-+      opacity: 0.85;
-+      background: rgba(20, 27, 51, 0.9);
-+    }
-+    @media (max-width: 900px) {
-+      main { grid-template-columns: 1fr; }
-+      .editor-wrap { height: 56vh; border-right: 0; }
-+      aside { border-top: 1px solid var(--line); }
-+    }
++    :root{--bg:#0b1020;--panel:#141b33;--line:rgba(255,255,255,.14);--text:#e8ecff;--ok:#53d28c;--accent:#5b8cff;--chip:rgba(255,255,255,.06)}
++    *{box-sizing:border-box}
++    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(1200px 500px at 20% -20%,#243160 0%,var(--bg) 50%);color:var(--text);min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}
++    header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;background:rgba(20,27,51,.9);border-bottom:1px solid var(--line)}
++    .status{color:var(--ok);font-size:13px;font-weight:700}
++    main{display:grid;grid-template-columns:1fr 320px;min-height:0}
++    .editor-wrap{height:calc(100vh - 120px);min-height:60vh;border-right:1px solid var(--line);background:#11172a}
++    #editor{width:100%;height:100%;border:0;outline:none;resize:none;padding:14px;background:#11172a;color:#e9eeff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;line-height:1.5;tab-size:2}
++    aside{padding:14px;background:rgba(20,27,51,.9)}
++    .help{margin:0;font-size:13px;line-height:1.5}
++    .version{margin-top:8px;font-size:11px;opacity:.7}
++    .buttons,.chips{display:grid;gap:8px}
++    .buttons{margin-top:10px}
++    .chips{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px}
++    button{border:1px solid transparent;border-radius:10px;padding:9px 11px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;text-align:left}
++    button.ghost{background:transparent;border-color:var(--line)}
++    .chips button{background:var(--chip);border-color:var(--line);text-align:center}
++    #suggest{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;display:none;background:rgba(8,12,26,.9)}
++    #suggest button{border-radius:0;border:0;border-top:1px solid var(--line);background:transparent;width:100%}
++    #suggest button:first-child{border-top:0}
++    #log{margin-top:10px;border:1px solid var(--line);border-radius:10px;min-height:66px;padding:9px;white-space:pre-wrap;font-size:12px;line-height:1.5}
++    footer{border-top:1px solid var(--line);padding:8px 14px;font-size:12px;opacity:.85;background:rgba(20,27,51,.9)}
++    @media (max-width:900px){main{grid-template-columns:1fr}.editor-wrap{height:56vh;border-right:0}aside{border-top:1px solid var(--line)}}
 +  </style>
  </head>
  <body>
@@ -144,16 +61,42 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..c224916d26de4082bd5fb656112d9059
 -  <div>Dojo Stable</div>
 -  <div id="status" style="opacity:.7;font-weight:700">loading...</div>
 -</header>
--
++  <main>
++    <div class="editor-wrap"><textarea id="editor" spellcheck="false"></textarea></div>
++    <aside>
++      <p class="help">完成版です。外部ライブラリなしで、必ず同じ画面が開くようにしています。</p>
++      <div class="version">build: stable-final-2026-02-06</div>
++      <div class="buttons">
++        <button id="btnSuggest">候補を開く</button>
++        <button id="btnInsert" class="ghost">local function を挿入</button>
++        <button id="btnSample" class="ghost">サンプルを読み込む</button>
++        <button id="btnReset" class="ghost">リセット</button>
++      </div>
++      <div class="chips">
++        <button type="button" data-insert="local ">local</button>
++        <button type="button" data-insert="function ">function</button>
++        <button type="button" data-insert="end">end</button>
++      </div>
++      <div id="suggest"></div>
++      <div id="log">準備完了。候補ボタンかチップで挿入できます。</div>
++    </aside>
++  </main>
+ 
 -<div id="editor"></div>
--
++  <footer>Tabキーで2スペース。Escで候補を閉じます。</footer>
+ 
 -<div id="panel">
 -  <button id="btnSuggest">補完を出す</button>
 -  <button id="btnInsert" class="ghost">local を挿入</button>
 -  <button id="btnReset" class="ghost">リセット</button>
 -  <div id="log">ready.</div>
 -</div>
--
++  <script>
++    const INITIAL = `-- Lua local script を書いてみよう\n\nlocal message = "hello"\nprint(message)\n`;
++    const SAMPLE = `-- local function サンプル\nlocal function greet(name)\n  local text = "Hello, " .. name\n  return text\nend\n\nprint(greet("Lua"))\n`;
++    const SNIPPET = `local function name(args)\n  -- body\nend\n`;
++    const WORDS = ["local ", "local function ", "function ", "end", "if ", "then\n  \nend"];
+ 
 -<script>
 -// ===== 画面にエラー表示（iPhone用）=====
 -window.onerror = function(msg, src, line, col){
@@ -163,20 +106,47 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..c224916d26de4082bd5fb656112d9059
 -  if (log) log.textContent =
 -    "JS ERROR:\n" + msg + "\n" + (src||"") + ":" + line + ":" + col;
 -};
--
++    const editor = document.getElementById("editor");
++    const log = document.getElementById("log");
++    const suggest = document.getElementById("suggest");
+ 
 -// ===== 候補（localだけ）=====
 -const LS_DB = [
 -  { key:"local", desc:"Luaのlocalキーワード", code:"local " },
 -];
--
++    editor.value = INITIAL;
+ 
 -// ===== Monaco起動 =====
 -require.config({ paths:{ vs:"https://unpkg.com/monaco-editor@0.45.0/min/vs" }});
 -require(["vs/editor/editor.main"], function(){
 -  const status = document.getElementById("status");
 -  const log = document.getElementById("log");
--
++    function insertText(text){
++      const start = editor.selectionStart;
++      const end = editor.selectionEnd;
++      editor.setRangeText(text, start, end, "end");
++      editor.focus();
++    }
++    function hideSuggest(){ suggest.style.display = "none"; suggest.innerHTML = ""; }
++    function openSuggest(){
++      suggest.innerHTML = "";
++      WORDS.forEach((word)=>{
++        const btn = document.createElement("button");
++        btn.type = "button";
++        btn.textContent = word.replace(/\n/g, "↵");
++        btn.onclick = ()=>{ insertText(word); log.textContent = `挿入: ${word.replace(/\n/g,"\\n")}`; hideSuggest(); };
++        suggest.appendChild(btn);
++      });
++      suggest.style.display = "block";
++      log.textContent = "候補を表示しました。";
++    }
+ 
 -  try { monaco.languages.register({ id:"lua" }); } catch(e){}
--
++    document.getElementById("btnSuggest").onclick = openSuggest;
++    document.getElementById("btnInsert").onclick = ()=>{ insertText(SNIPPET); log.textContent = "local function を挿入しました。"; };
++    document.getElementById("btnSample").onclick = ()=>{ editor.value = SAMPLE; hideSuggest(); log.textContent = "サンプルコードを読み込みました。"; };
++    document.getElementById("btnReset").onclick = ()=>{ editor.value = INITIAL; hideSuggest(); log.textContent = "初期コードに戻しました。"; };
+ 
 -  const editor = monaco.editor.create(document.getElementById("editor"), {
 -    value: "-- local と打ってみて\n\n",
 -    language: "lua",
@@ -188,7 +158,10 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..c224916d26de4082bd5fb656112d9059
 -    suggestOnTriggerCharacters: true,
 -    tabCompletion: "on"
 -  });
--
++    document.querySelectorAll("[data-insert]").forEach((btn)=>{
++      btn.onclick = ()=>{ insertText(btn.dataset.insert || ""); log.textContent = `挿入: ${btn.dataset.insert}`; };
++    });
+ 
 -  // 補完登録（localだけ）
 -  monaco.languages.registerCompletionItemProvider("lua", {
 -    provideCompletionItems: () => ({
@@ -227,119 +200,14 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..c224916d26de4082bd5fb656112d9059
 -  log.textContent = "OK：local が候補に出るはず。出なければ『補完を出す』を押して。";
 -});
 -</script>
-+  <main>
-+    <div class="editor-wrap">
-+      <textarea id="editor" spellcheck="false"></textarea>
-+    </div>
++    editor.addEventListener("keydown", (event)=>{
++      if (event.key === "Tab") { event.preventDefault(); insertText("  "); }
++      if (event.key === "Escape") { hideSuggest(); }
++    });
  
-+    <aside>
-+      <p class="help">完成版：local script をすぐ書けるように、補助ボタンと候補挿入を有効化しました。</p>
-+
-+      <div class="buttons">
-+        <button id="btnSuggest">候補を開く</button>
-+        <button id="btnInsert" class="ghost">local function を挿入</button>
-+        <button id="btnSample" class="ghost">サンプルを読み込む</button>
-+        <button id="btnReset" class="ghost">リセット</button>
-+      </div>
-+
-+      <div class="chips">
-+        <button data-insert="local ">local</button>
-+        <button data-insert="function ">function</button>
-+        <button data-insert="end">end</button>
-+      </div>
-+
-+      <div id="suggest"></div>
-+      <div id="log">準備完了。候補ボタンかチップで挿入できます。</div>
-+    </aside>
-+  </main>
-+
-+  <footer>Tabキーで2スペースを挿入できます。</footer>
-+
-+  <script>
-+    const INITIAL = `-- Lua local script を書いてみよう\n\nlocal message = "hello"\nprint(message)\n`;
-+    const SAMPLE = `-- local function サンプル\nlocal function greet(name)\n  local text = "Hello, " .. name\n  return text\nend\n\nprint(greet("Lua"))\n`;
-+    const SNIPPET = `local function name(args)\n  -- body\nend\n`;
-+    const WORDS = ["local ", "local function ", "function ", "end", "if ", "then\n  \nend"];
-+
-+    const editor = document.getElementById("editor");
-+    const log = document.getElementById("log");
-+    const suggest = document.getElementById("suggest");
-+    const status = document.getElementById("status");
-+
-+    editor.value = INITIAL;
-+
-+    function insertText(text) {
-+      const start = editor.selectionStart;
-+      const end = editor.selectionEnd;
-+      editor.setRangeText(text, start, end, "end");
-+      editor.focus();
-+    }
-+
-+    function hideSuggest() {
-+      suggest.style.display = "none";
-+      suggest.innerHTML = "";
-+    }
-+
-+    function openSuggest() {
-+      suggest.innerHTML = "";
-+      WORDS.forEach((word) => {
-+        const btn = document.createElement("button");
-+        btn.type = "button";
-+        btn.textContent = word.replace(/\n/g, "↵");
-+        btn.onclick = () => {
-+          insertText(word);
-+          log.textContent = `挿入: ${word.replace(/\n/g, "\\n")}`;
-+          hideSuggest();
-+        };
-+        suggest.appendChild(btn);
-+      });
-+      suggest.style.display = "block";
-+      log.textContent = "候補を表示しました。";
-+    }
-+
-+    document.getElementById("btnSuggest").onclick = openSuggest;
-+    document.getElementById("btnInsert").onclick = () => {
-+      insertText(SNIPPET);
-+      log.textContent = "local function を挿入しました。";
-+    };
-+    document.getElementById("btnSample").onclick = () => {
-+      editor.value = SAMPLE;
-+      editor.focus();
-+      hideSuggest();
-+      log.textContent = "サンプルコードを読み込みました。";
-+    };
-+    document.getElementById("btnReset").onclick = () => {
-+      editor.value = INITIAL;
-+      editor.focus();
-+      hideSuggest();
-+      log.textContent = "初期コードに戻しました。";
-+    };
-+
-+    document.querySelectorAll("[data-insert]").forEach((btn) => {
-+      btn.onclick = () => {
-+        insertText(btn.dataset.insert || "");
-+        log.textContent = `挿入: ${btn.dataset.insert}`;
-+      };
++    document.addEventListener("click", (event)=>{
++      if (!suggest.contains(event.target) && event.target.id !== "btnSuggest") hideSuggest();
 +    });
-+
-+    editor.addEventListener("keydown", (event) => {
-+      if (event.key === "Tab") {
-+        event.preventDefault();
-+        insertText("  ");
-+      }
-+      if (event.key === "Escape") {
-+        hideSuggest();
-+      }
-+    });
-+
-+    document.addEventListener("click", (event) => {
-+      if (!suggest.contains(event.target) && event.target.id !== "btnSuggest") {
-+        hideSuggest();
-+      }
-+    });
-+
-+    status.textContent = "ready";
 +  </script>
  </body>
  </html>
- 
