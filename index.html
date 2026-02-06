@@ -1,9 +1,8 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/index.html b/index.html
-index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec00c0de580 100644
+index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..68193eb9f5ee8ce449252a44b2fff4354f6cd310 100644
 --- a/index.html
 +++ b/index.html
-@@ -1,109 +1,197 @@
+@@ -1,109 +1,126 @@
  <!doctype html>
  <html lang="ja">
  <head>
@@ -52,11 +51,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 +      border-bottom: 1px solid var(--line);
 +    }
 +    .status { color: var(--ok); font-size: 13px; font-weight: 700; }
-+    main {
-+      display: grid;
-+      grid-template-columns: 1fr 320px;
-+      min-height: 0;
-+    }
++    main { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
 +    .editor-wrap {
 +      height: calc(100vh - 120px);
 +      min-height: 60vh;
@@ -88,20 +83,10 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 +      color: #fff;
 +      font-size: 13px;
 +      font-weight: 700;
-+      cursor: pointer;
 +      text-align: left;
 +    }
 +    button.ghost { background: transparent; border-color: var(--line); }
 +    .chips button { background: var(--chip); border-color: var(--line); text-align: center; }
-+    #suggest {
-+      margin-top: 10px;
-+      border: 1px solid var(--line);
-+      border-radius: 10px;
-+      overflow: hidden;
-+      display: none;
-+    }
-+    #suggest button { border-radius: 0; background: transparent; border: 0; border-top: 1px solid var(--line); }
-+    #suggest button:first-child { border-top: 0; }
 +    #log {
 +      margin-top: 10px;
 +      border: 1px solid var(--line);
@@ -122,7 +107,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
  <body>
 +  <header>
 +    <strong>Lua Local Script Playground</strong>
-+    <div class="status">ready</div>
++    <div class="status">screen ready</div>
 +  </header>
  
 -<header>
@@ -131,12 +116,13 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 -</header>
 +  <main>
 +    <div class="editor-wrap">
-+      <textarea id="editor" spellcheck="false"></textarea>
-+    </div>
++      <textarea id="editor" spellcheck="false">-- Lua local script の画面確認用
  
 -<div id="editor"></div>
-+    <aside>
-+      <p>外部ライブラリなしで、必ず同じ見た目で動く local script 練習サイトです。</p>
++local message = "hello"
++print(message)
++</textarea>
++    </div>
  
 -<div id="panel">
 -  <button id="btnSuggest">補完を出す</button>
@@ -144,12 +130,8 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 -  <button id="btnReset" class="ghost">リセット</button>
 -  <div id="log">ready.</div>
 -</div>
-+      <div class="buttons">
-+        <button id="btnSuggest">候補を開く</button>
-+        <button id="btnInsert" class="ghost">local function を挿入</button>
-+        <button id="btnSample" class="ghost">サンプルを読み込む</button>
-+        <button id="btnReset" class="ghost">リセット</button>
-+      </div>
++    <aside>
++      <p>まずは「スクリーンショットと同じ画面を開ける」ことを優先した固定UIです。</p>
  
 -<script>
 -// ===== 画面にエラー表示（iPhone用）=====
@@ -160,35 +142,31 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 -  if (log) log.textContent =
 -    "JS ERROR:\n" + msg + "\n" + (src||"") + ":" + line + ":" + col;
 -};
-+      <div class="chips">
-+        <button data-insert="local ">local</button>
-+        <button data-insert="function ">function</button>
-+        <button data-insert="end">end</button>
++      <div class="buttons">
++        <button>候補を開く（準備中）</button>
++        <button class="ghost">local function を挿入（準備中）</button>
++        <button class="ghost">サンプルを読み込む（準備中）</button>
++        <button class="ghost">リセット（準備中）</button>
 +      </div>
  
 -// ===== 候補（localだけ）=====
 -const LS_DB = [
 -  { key:"local", desc:"Luaのlocalキーワード", code:"local " },
 -];
-+      <div id="suggest"></div>
-+      <div id="log">準備完了。local を入力して練習してください。</div>
-+    </aside>
-+  </main>
++      <div class="chips">
++        <button>local</button>
++        <button>function</button>
++        <button>end</button>
++      </div>
  
 -// ===== Monaco起動 =====
 -require.config({ paths:{ vs:"https://unpkg.com/monaco-editor@0.45.0/min/vs" }});
 -require(["vs/editor/editor.main"], function(){
 -  const status = document.getElementById("status");
 -  const log = document.getElementById("log");
-+  <footer>Tip: Tab でインデント、候補ボタンで単語を挿入できます。</footer>
- 
+-
 -  try { monaco.languages.register({ id:"lua" }); } catch(e){}
-+  <script>
-+    const INITIAL = `-- Lua local script を書いてみよう\n\nlocal message = "hello"\nprint(message)\n`;
-+    const SAMPLE = `-- local function サンプル\nlocal function greet(name)\n  local text = "Hello, " .. name\n  return text\nend\n\nprint(greet("Lua"))\n`;
-+    const SNIPPET = `local function name(args)\n  -- body\nend\n`;
-+    const WORDS = ["local ", "local function ", "function ", "end", "if ", "then\n  \nend"];
- 
+-
 -  const editor = monaco.editor.create(document.getElementById("editor"), {
 -    value: "-- local と打ってみて\n\n",
 -    language: "lua",
@@ -200,10 +178,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 -    suggestOnTriggerCharacters: true,
 -    tabCompletion: "on"
 -  });
-+    const editor = document.getElementById("editor");
-+    const log = document.getElementById("log");
-+    const suggest = document.getElementById("suggest");
- 
+-
 -  // 補完登録（localだけ）
 -  monaco.languages.registerCompletionItemProvider("lua", {
 -    provideCompletionItems: () => ({
@@ -215,8 +190,7 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 -      }))
 -    })
 -  });
-+    editor.value = INITIAL;
- 
+-
 -  // ボタン
 -  document.getElementById("btnSuggest").onclick = ()=>{
 -    try { editor.trigger("manual","editor.action.triggerSuggest",{}); } catch(e){}
@@ -235,59 +209,18 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f0beffadcda1041e349f37ffde688ec0
 -    editor.focus();
 -    log.textContent = "reset";
 -  };
-+    function insertText(text) {
-+      const start = editor.selectionStart;
-+      const end = editor.selectionEnd;
-+      editor.setRangeText(text, start, end, "end");
-+      editor.focus();
-+    }
- 
+-
 -  // 最初に一回だけ補完を開く（iPhone対策）
 -  setTimeout(()=>{ try { editor.trigger("auto","editor.action.triggerSuggest",{}); } catch(e){} }, 250);
-+    function openSuggest() {
-+      suggest.innerHTML = "";
-+      WORDS.forEach((word) => {
-+        const btn = document.createElement("button");
-+        btn.type = "button";
-+        btn.textContent = word.replace(/\n/g, "↵");
-+        btn.onclick = () => {
-+          insertText(word);
-+          log.textContent = `挿入: ${word.replace(/\n/g, "\\n")}`;
-+          suggest.style.display = "none";
-+        };
-+        suggest.appendChild(btn);
-+      });
-+      suggest.style.display = "block";
-+      log.textContent = "候補を表示しました。";
-+    }
- 
+-
 -  if (status) status.textContent = "ready";
 -  log.textContent = "OK：local が候補に出るはず。出なければ『補完を出す』を押して。";
 -});
 -</script>
-+    document.getElementById("btnSuggest").onclick = openSuggest;
-+    document.getElementById("btnInsert").onclick = () => {
-+      insertText(SNIPPET);
-+      log.textContent = "local function を挿入しました。";
-+    };
-+    document.getElementById("btnSample").onclick = () => {
-+      editor.value = SAMPLE;
-+      editor.focus();
-+      log.textContent = "サンプルコードを読み込みました。";
-+    };
-+    document.getElementById("btnReset").onclick = () => {
-+      editor.value = INITIAL;
-+      editor.focus();
-+      log.textContent = "初期コードに戻しました。";
-+    };
++      <div id="log">画面表示は完了。次に動作機能を1つずつ追加できます。</div>
++    </aside>
++  </main>
  
-+    document.querySelectorAll("[data-insert]").forEach((btn) => {
-+      btn.onclick = () => {
-+        insertText(btn.dataset.insert || "");
-+        log.textContent = `挿入: ${btn.dataset.insert}`;
-+      };
-+    });
-+  </script>
++  <footer>Step 1: 見た目を安定表示。Step 2: 機能を段階追加。</footer>
  </body>
  </html>
- 
