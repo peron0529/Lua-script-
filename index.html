@@ -1,25 +1,13 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/index.html b/index.html
-index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f9975cf909e9d52a7a2134b1552d0f127dcb4072 100644
---- a/index.html
-+++ b/index.html
-@@ -1,109 +1,233 @@
- <!doctype html>
- <html lang="ja">
- <head>
--<meta charset="utf-8" />
--<meta name="viewport" content="width=device-width, initial-scale=1" />
--<title>Dojo (Stable)</title>
--<style>
--  body{margin:0;font-family:-apple-system,system-ui;background:#0f1220;color:#eaeaf0}
--  header{padding:12px;background:#171a2e;font-weight:800;display:flex;justify-content:space-between;align-items:center}
--  #editor{height:62vh}
--  #panel{padding:10px;background:#171a2e;border-top:1px solid rgba(255,255,255,.08)}
--  button{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#4c6ef5;color:#fff;font-weight:800}
--  button.ghost{background:transparent}
--  #log{margin-top:10px;font-size:13px;white-space:pre-wrap;opacity:.9;line-height:1.35}
--</style>
--<script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+diff --git a/app.html b/app.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fcf31eed580b17d56993a74b92c61df60023217
+--- /dev/null
++++ b/app.html
+@@ -0,0 +1,233 @@
++<!doctype html>
++<html lang="ja">
++<head>
 +  <meta charset="utf-8" />
 +  <meta name="viewport" content="width=device-width, initial-scale=1" />
 +  <meta http-equiv="Cache-Control" content="no-store, max-age=0" />
@@ -132,108 +120,21 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f9975cf909e9d52a7a2134b1552d0f12
 +      aside { border-top: 1px solid var(--line); }
 +    }
 +  </style>
- </head>
- <body>
++</head>
++<body>
 +  <header>
 +    <div>
 +      <strong>Lua Local Script Playground</strong>
-+      <span class="version">build: stable-final-2026-02-06-r2</span>
++      <span class="version">build: stable-final-2026-02-06-r3</span>
 +    </div>
 +    <div class="status">ready</div>
 +  </header>
- 
--<header>
--  <div>Dojo Stable</div>
--  <div id="status" style="opacity:.7;font-weight:700">loading...</div>
--</header>
--
--<div id="editor"></div>
--
--<div id="panel">
--  <button id="btnSuggest">補完を出す</button>
--  <button id="btnInsert" class="ghost">local を挿入</button>
--  <button id="btnReset" class="ghost">リセット</button>
--  <div id="log">ready.</div>
--</div>
--
--<script>
--// ===== 画面にエラー表示（iPhone用）=====
--window.onerror = function(msg, src, line, col){
--  const st = document.getElementById("status");
--  const log = document.getElementById("log");
--  if (st) st.textContent = "error";
--  if (log) log.textContent =
--    "JS ERROR:\n" + msg + "\n" + (src||"") + ":" + line + ":" + col;
--};
--
--// ===== 候補（localだけ）=====
--const LS_DB = [
--  { key:"local", desc:"Luaのlocalキーワード", code:"local " },
--];
--
--// ===== Monaco起動 =====
--require.config({ paths:{ vs:"https://unpkg.com/monaco-editor@0.45.0/min/vs" }});
--require(["vs/editor/editor.main"], function(){
--  const status = document.getElementById("status");
--  const log = document.getElementById("log");
--
--  try { monaco.languages.register({ id:"lua" }); } catch(e){}
--
--  const editor = monaco.editor.create(document.getElementById("editor"), {
--    value: "-- local と打ってみて\n\n",
--    language: "lua",
--    theme: "vs-dark",
--    minimap: { enabled:false },
--    fontSize: 14,
--    wordWrap: "on",
--    quickSuggestions: true,
--    suggestOnTriggerCharacters: true,
--    tabCompletion: "on"
--  });
--
--  // 補完登録（localだけ）
--  monaco.languages.registerCompletionItemProvider("lua", {
--    provideCompletionItems: () => ({
--      suggestions: LS_DB.map(it => ({
--        label: it.key,
--        kind: monaco.languages.CompletionItemKind.Keyword,
--        insertText: it.code,
--        documentation: it.desc
--      }))
--    })
--  });
--
--  // ボタン
--  document.getElementById("btnSuggest").onclick = ()=>{
--    try { editor.trigger("manual","editor.action.triggerSuggest",{}); } catch(e){}
--  };
--  document.getElementById("btnInsert").onclick = ()=>{
--    const p = editor.getPosition() || {lineNumber:1,column:1};
--    editor.executeEdits("ins", [{
--      range: new monaco.Range(p.lineNumber, p.column, p.lineNumber, p.column),
--      text: "local "
--    }]);
--    editor.focus();
--    log.textContent = "inserted: local";
--  };
--  document.getElementById("btnReset").onclick = ()=>{
--    editor.setValue("-- local と打ってみて\n\n");
--    editor.focus();
--    log.textContent = "reset";
--  };
--
--  // 最初に一回だけ補完を開く（iPhone対策）
--  setTimeout(()=>{ try { editor.trigger("auto","editor.action.triggerSuggest",{}); } catch(e){} }, 250);
--
--  if (status) status.textContent = "ready";
--  log.textContent = "OK：local が候補に出るはず。出なければ『補完を出す』を押して。";
--});
--</script>
++
 +  <main>
 +    <div class="editor-wrap">
 +      <textarea id="editor" spellcheck="false"></textarea>
 +    </div>
- 
++
 +    <aside>
 +      <p class="help">完成版。外部依存なしで同じ画面が表示されます（キャッシュ無効化ヘッダー付き）。</p>
 +
@@ -335,6 +236,8 @@ index 731212ccf7042a68dfbfea6c33811ac91a0ea2fc..f9975cf909e9d52a7a2134b1552d0f12
 +      }
 +    });
 +  </script>
- </body>
- </html>
++</body>
++</html>
  
+EOF
+)
